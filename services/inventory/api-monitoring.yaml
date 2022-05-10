@@ -1,0 +1,146 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Monitors our ECS deployed API
+## TODO: Condition check to provision only in prod (after done testing)
+
+Parameters:
+  pServiceName:
+    Description: The service name
+    Type: String
+  pEcsClusterName:
+    Description: The ECS cluster name
+    Type: String
+  pEnvironment:
+    Description: The active environment
+    Type: String
+
+Resources:
+  AutoScalingRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: service-auto-scaling-role
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: [application-autoscaling.amazonaws.com]
+              Action: ["sts:AssumeRole"]
+        Policies:
+          - PolicyName: service-auto-scaling-policy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - ecs:DescribeServices
+                    - ecs:UpdateService
+                    - cloudwatch:PutMetricAlarm
+                    - cloudwatch:DescribeAlarms
+                    - cloudwatch:DeleteAlarms
+                  Resource: "*"
+
+  # Enable autoscaling for the service
+  ScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      ServiceNamespace: 'ecs'
+      ScalableDimension: 'ecs:service:DesiredCount'
+      ResourceId:
+        Fn::Join:
+          - '/'
+          - - service
+            - !Ref pEcsClusterName
+            - !Ref pServiceName
+      MinCapacity: 1
+      MaxCapacity: 10
+      RoleARN: !GetAtt AutoScalingRole.Arn
+
+  # Create scaling policies that describe how to scale the service up and down.
+  ScaleDownPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn: ScalableTarget
+    Properties:
+      PolicyName: !Sub ${pServiceName}-scale-down
+      PolicyType: StepScaling
+      ResourceId:
+        Fn::Join:
+          - '/'
+          - - service
+            - !Ref pEcsClusterName
+            - !Ref pServiceName
+      ScalableDimension: 'ecs:service:DesiredCount'
+      ServiceNamespace: 'ecs'
+      StepScalingPolicyConfiguration:
+        AdjustmentType: 'ChangeInCapacity'
+        StepAdjustments:
+          - MetricIntervalUpperBound: 0
+            ScalingAdjustment: -1
+        MetricAggregationType: 'Average'
+        Cooldown: 60
+
+  ScaleUpPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn: ScalableTarget
+    Properties:
+      PolicyName: !Sub ${pServiceName}-scale-up
+      PolicyType: StepScaling
+      ResourceId:
+        Fn::Join:
+          - '/'
+          - - service
+            - !Ref pEcsClusterName
+            - !Ref pServiceName
+      ScalableDimension: 'ecs:service:DesiredCount'
+      ServiceNamespace: 'ecs'
+      StepScalingPolicyConfiguration:
+        AdjustmentType: 'ChangeInCapacity'
+        StepAdjustments:
+          - MetricIntervalLowerBound: 0
+            MetricIntervalUpperBound: 15
+            ScalingAdjustment: 1
+          - MetricIntervalLowerBound: 15
+            MetricIntervalUpperBound: 25
+            ScalingAdjustment: 2
+          - MetricIntervalLowerBound: 25
+            ScalingAdjustment: 3
+        MetricAggregationType: 'Average'
+        Cooldown: 60
+
+  LowCpuUsageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${pServiceName}-low-cpu-alarm
+      AlarmDescription: !Sub "Low CPU utilization for service ${pServiceName} in environment ${pEnvironment}"
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Dimensions:
+        - Name: ServiceName
+          Value: !Ref pServiceName
+        - Name: ClusterName
+          Value: !Ref pEcsClusterName
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 20
+      ComparisonOperator: LessThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref ScaleDownPolicy
+
+  HighCpuUsageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${pServiceName}-high-cpu-alarm
+      AlarmDescription: !Sub "High CPU utilization for service ${pServiceName} in environment ${pEnvironment}"
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Dimensions:
+        - Name: ServiceName
+          Value: !Ref pServiceName
+        - Name: ClusterName
+          Value: !Ref pEcsClusterName
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 70
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref ScaleUpPolicy

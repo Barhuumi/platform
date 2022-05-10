@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Stack for provisioning our Lambda resources
+
+Parameters:
+  pEventBusName:
+    Description: Name of the event bus
+    Type: String
+  pServiceName:
+    Default: inventory-service
+    Type: String
+
+Resources:
+  HandleAssetCreatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lib/assets/
+      Handler: handle-asset-created-event.js.handler
+      Runtime: nodejs14.x
+      Events:
+        SendAssetCreatedComms:
+          Type: EventBridgeRule 
+          Properties:
+            EventBusName: !Ref pEventBusName
+            Pattern:
+              source:
+                - services.events.inventory-service.v1
+              detail-type:
+                - ASSET_CREATED
+  HandleAssetCreatedLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${HandleAssetCreatedFunction}"
+      RetentionInDays: 30
+

@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: platform-infrastructure
+
+Parameters:
+  pEnvironment:
+    AllowedValues:
+      - dev
+      - uat
+      - prod
+    Type: String
+    Default: dev
+  StackName:
+    Type: String
+    Default: platform-infrastructure
+
+Mappings:
+  mEnvironments:
+    dev:
+      PrivateSubnetIds: [ 'subnet-01a3217e90b666d42', 'subnet-0ae1665ea7d314ad2', 'subnet-0cb2ad6d1b8365a8b']
+      PrivateSubnetA: 'subnet-01a3217e90b666d42'
+      PrivateSubnetB: 'subnet-0ae1665ea7d314ad2'
+      PrivateSubnetC: 'subnet-0cb2ad6d1b8365a8b'
+      VpcId: 'vpc-0d81531e452c38eeb'
+    uat:
+      PrivateSubnetIds: [ 'subnet-0d18a52c817054623', 'subnet-039756cdd4744551d', 'subnet-08d4791ecafcc39ed']
+      PrivateSubnetA: 'subnet-0d18a52c817054623'
+      PrivateSubnetB: 'subnet-039756cdd4744551d'
+      PrivateSubnetC: 'subnet-08d4791ecafcc39ed'
+      VpcId: 'vpc-0fc0605dce40f48e6'
+    prod:
+      PrivateSubnetIds: [ 'subnet-6c92f105', 'subnet-6e66c914', 'subnet-dfb94493']
+      PrivateSubnetA: 'subnet-6c92f105'
+      PrivateSubnetB: 'subnet-6e66c914'
+      PrivateSubnetC: 'subnet-dfb94493'
+      VpcId: 'vpc-3964fd51'
+
+Resources:
+  EcrRepositoriesStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./ecr-repositories.yml
+
+  MicroservicesECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: microservices-cluster
+
+  ApplicationLoadBalancerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG for the application load balancer
+      GroupName: application-load-balancer-sg
+      SecurityGroupIngress:
+        - CidrIpv6: ::/0
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: TCP
+          Description: Inbound rule for IPv6 traffic
+        - CidrIp: 0.0.0.0/0
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: TCP
+          Description: Inbound rule for IPv4 traffic
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: application-load-balancer
+      Subnets: !FindInMap
+        - mEnvironments
+        - !Ref pEnvironment
+        - PrivateSubnetIds
+      Type: application
+      SecurityGroups:
+        - !GetAtt ApplicationLoadBalancerSG.GroupId
+
+  # Event bus for services
+  PlatformServicesEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: services-event-bus
+
+  # Event bus for third parties and SAAS providers
+  PlatformPartnersEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: partners-event-bus
+
+Outputs:
+  oApplicationLoadBalancerArn:
+    Description: Application Load Balancer ARN
+    Value: !Ref ApplicationLoadBalancer
+    Export:
+      Name: !Sub ${AWS::StackName}-application-load-balancer-arn
+  oMicroservicesEcsClusterName:
+    Description: Microservices ECS cluster name
+    Value: !Ref MicroservicesECSCluster
+    Export:
+      Name: !Sub ${AWS::StackName}-microservices-ecs-cluster-name
+  oPlatformServicesEventBusName:
+    Description: Platform services event bus name
+    Value: !Ref PlatformServicesEventBus
+    Export:
+      Name: !Sub ${AWS::StackName}-services-event-bus-name
+  oPlatformServicesEventBusArn:
+    Description: Platform services event bus ARN
+    Value: !GetAtt PlatformServicesEventBus.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-services-event-bus-arn
+  oPartnersEventBusName:
+    Description: Platform partners event bus name
+    Value: !Ref PlatformPartnersEventBus
+    Export:
+      Name: !Sub ${AWS::StackName}-partners-event-bus-name
+  oPlatformPartnersEventBusArn:
+    Description: Platform partners event bus ARN
+    Value: !GetAtt PlatformPartnersEventBus.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-partners-event-bus-arn
+  oPrivateSubnetA:
+    Description: Private subnet A id
+    Value: !FindInMap
+      - mEnvironments
+      - !Ref pEnvironment
+      - PrivateSubnetA
+    Export:
+      Name: !Sub ${AWS::StackName}-vpc-private-subnet-a-id
+  oPrivateSubnetB:
+    Description: Private subnet B id
+    Value: !FindInMap
+      - mEnvironments
+      - !Ref pEnvironment
+      - PrivateSubnetB
+    Export:
+      Name: !Sub ${AWS::StackName}-vpc-private-subnet-b-id
+  oPrivateSubnetC:
+    Description: Private subnet C id
+    Value: !FindInMap
+      - mEnvironments
+      - !Ref pEnvironment
+      - PrivateSubnetC
+    Export:
+      Name: !Sub ${AWS::StackName}-vpc-private-subnet-c-id
+  oVpcId:
+    Description: VPC id
+    Value: !FindInMap
+      - mEnvironments
+      - !Ref pEnvironment
+      - VpcId
+    Export:
+      Name: !Sub ${AWS::StackName}-vpc-id
+  ## ECR Repositories
+  oInventoryServiceRepositoryUri:
+    Description: Inventory Service Repository Uri
+    # Value: !GetAtt InventoryServiceRepository.RepositoryUri
+    Value: !GetAtt EcrRepositoriesStack.Outputs.oInventoryServiceRepositoryUri
+    Export:
+      Name: !Sub ${AWS::StackName}-inventory-service-repository-uri

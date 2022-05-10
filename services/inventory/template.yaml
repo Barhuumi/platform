@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: inventory-service
+
+Globals:
+  Function:
+    Runtime: nodejs14.x
+    MemorySize: 256
+    Timeout: 6
+
+Parameters:
+  pEnvironment:
+    AllowedValues:
+      - dev
+      - uat
+      - sandbox
+      - prod
+    Type: String
+  pServiceName:
+    Type: String
+    Default: inventory-service
+  pImageTag:
+    Type: String
+
+Resources:
+  ApiStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./api.yaml
+      Parameters:
+        pImageTag: !Ref pImageTag
+        pServiceName: !Ref pServiceName
+        pVpcId: !ImportValue platform-infrastructure-vpc-id
+        pPrivateSubnetA: !ImportValue platform-infrastructure-vpc-private-subnet-a-id
+        pPrivateSubnetB: !ImportValue platform-infrastructure-vpc-private-subnet-b-id
+        pPrivateSubnetC: !ImportValue platform-infrastructure-vpc-private-subnet-c-id
+        pEventBusName: !ImportValue platform-infrastructure-services-event-bus-name
+        pEventBusArn: !ImportValue platform-infrastructure-services-event-bus-arn
+        pEcsClusterName: !ImportValue platform-infrastructure-microservices-ecs-cluster-name
+        pLoadBalancerArn: !ImportValue platform-infrastructure-application-load-balancer-arn
+
+  ApiMonitoringStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./api-monitoring.yaml
+      Parameters:
+        pServiceName: !Ref pServiceName
+        pEnvironment: !Ref pEnvironment
+        pEcsClusterName: !ImportValue platform-infrastructure-microservices-ecs-cluster-name
+
+  LambdaStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./lambda.yaml
+      Parameters:
+        pEventBusName: !ImportValue platform-infrastructure-services-event-bus-name

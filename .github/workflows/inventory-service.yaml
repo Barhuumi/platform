@@ -1,0 +1,298 @@
+name: inventory-service
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop #temp ignore
+    paths:
+      - services/inventory/**
+
+env:
+  STACK_NAME: inventory-service
+  ECR_REPOSITORY_NAME: inventory-service-repository
+  AWS_REGION: eu-west-2
+  SAM_TEMPLATE: template.yaml
+  ## deployment pipeline user
+  PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+  PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+  ## deployment pipeline execution role
+  PIPELINE_EXECUTION_ROLE_DEV: ${{ secrets.PIPELINE_EXECUTION_ROLE_DEV }}
+  PIPELINE_EXECUTION_ROLE_UAT: ${{ secrets.PIPELINE_EXECUTION_ROLE_UAT }}
+  PIPELINE_EXECUTION_ROLE_PROD: ${{ secrets.PIPELINE_EXECUTION_ROLE_PROD }}
+  ## cloudformation execution role
+  CLOUDFORMATION_EXECUTION_ROLE_DEV: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_DEV }}
+  CLOUDFORMATION_EXECUTION_ROLE_UAT: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_UAT }}
+  CLOUDFORMATION_EXECUTION_ROLE_PROD: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_PROD }}
+  ## artifacts bucket
+  ARTIFACTS_BUCKET_DEV: ${{ secrets.ARTIFACTS_BUCKET_DEV }}
+  ARTIFACTS_BUCKET_UAT: ${{ secrets.ARTIFACTS_BUCKET_UAT }}
+  ARTIFACTS_BUCKET_PROD: ${{ secrets.ARTIFACTS_BUCKET_PROD }}
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+    # TODO: Get output of docker image tag working
+    outputs:
+      IMAGE_TAG_DEV: ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }}
+      IMAGE_TAG_UAT: ${{ steps.uat-build-docker-image.outputs.IMAGE_TAG_UAT }}
+      IMAGE_TAG_PROD: ${{ steps.prod-build-docker-image.outputs.IMAGE_TAG_PROD }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: aws-actions/setup-sam@v1
+
+      - name: Echo env vars
+        run: |
+          echo "ARTIFACTS_BUCKET_DEV: ${{ env.ARTIFACTS_BUCKET_DEV }}"
+          echo "CLOUDFORMATION_EXECUTION_ROLE_DEV: ${{ env.CLOUDFORMATION_EXECUTION_ROLE_DEV }}"
+          echo "PIPELINE_EXECUTION_ROLE_DEV: ${{ env.PIPELINE_EXECUTION_ROLE_DEV }}"
+          echo "AWS_REGION: ${{ env.AWS_REGION }}"
+          echo "PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}"
+          echo "PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}"
+
+      - name: Build resources
+        run: cd services/inventory && sam build --template ${SAM_TEMPLATE} --use-container
+
+      ## Package the dev stack
+      - name: Assume the dev pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_DEV }}
+          role-session-name: dev-packaging
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
+      - name: Upload artifacts to dev artifact buckets
+        run: |
+          cd services/inventory && sam package \
+            --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
+            --region ${AWS_REGION} \
+            --output-template-file packaged-dev.yaml
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: packaged-dev.yaml
+          path: services/inventory
+
+      - name: Login to Amazon ECR
+        id: dev-login-ecr
+        uses: aws-actions/amazon-ecr-login@aaf69d68aa3fb14c1d5a6be9ac61fe15b48453a2
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        id: dev-build-docker-image
+        env:
+          ECR_REGISTRY: ${{ steps.dev-login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd services/inventory
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=IMAGE_TAG_DEV::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      ## Package the uat stack
+      - name: Assume the uat pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_UAT }}
+          role-session-name: uat-packaging
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
+      - name: Upload artifacts to uat artifact buckets
+        run: |
+          cd services/inventory && sam package \
+            --s3-bucket ${ARTIFACTS_BUCKET_UAT} \
+            --region ${AWS_REGION} \
+            --output-template-file packaged-uat.yaml
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: packaged-uat.yaml
+          path: services/inventory
+
+      - name: Login to Amazon ECR
+        id: uat-login-ecr
+        uses: aws-actions/amazon-ecr-login@aaf69d68aa3fb14c1d5a6be9ac61fe15b48453a2
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        id: uat-build-docker-image
+        env:
+          ECR_REGISTRY: ${{ steps.uat-login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd services/inventory
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=IMAGE_TAG_UAT::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      ## Package the prod stack
+      - name: Assume the prod pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_PROD }}
+          role-session-name: prod-packaging
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
+      - name: Upload artifacts to production artifact buckets
+        run: |
+          cd services/inventory && sam package \
+            --s3-bucket ${ARTIFACTS_BUCKET_PROD} \
+            --region ${AWS_REGION} \
+            --output-template-file packaged-prod.yaml
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: packaged-prod.yaml
+          path: services/inventory
+
+      - name: Login to Amazon ECR
+        id: prod-login-ecr
+        uses: aws-actions/amazon-ecr-login@aaf69d68aa3fb14c1d5a6be9ac61fe15b48453a2
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        id: prod-build-docker-image
+        env:
+          ECR_REGISTRY: ${{ steps.prod-login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd services/inventory
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=IMAGE_TAG_PROD::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+  deploy-dev:
+    environment: dev
+    needs: [build-and-package]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: aws-actions/setup-sam@v1
+
+      - name: Echo IMAGE TAG
+        run: |
+          echo "IMAGE_TAG_OUTPUT_DEV: ${{needs.build-and-package.outputs.IMAGE_TAG_DEV}}"
+          echo "IMAGE_TAG_OUTPUT_DEV: ${{build-and-package.outputs.IMAGE_TAG_DEV}}"
+          echo "IMAGE_TAG_OUTPUT_UAT: ${{needs.build-and-package.outputs.IMAGE_TAG_UAT}}"
+          echo "IMAGE_TAG_OUTPUT_PROD: ${{needs.build-and-package.outputs.IMAGE_TAG_PROD}}"
+
+  # deploy-dev:
+  #   environment: dev
+  #   needs: [build-and-package]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v2
+  #     - uses: aws-actions/setup-sam@v1
+
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: packaged-dev.yaml
+  #         path: services/inventory
+
+  #     - name: Assume the dev pipeline user role
+  #       uses: aws-actions/configure-aws-credentials@v1
+  #       with:
+  #         aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ env.AWS_REGION }}
+  #         role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_DEV }}
+  #         role-session-name: dev-deployment
+  #         role-duration-seconds: 900
+  #         role-skip-session-tagging: true
+
+  #     - name: Deploy to dev account
+  #       run: |
+  #         cd services/inventory && sam deploy --stack-name ${STACK_NAME} \
+  #           --template packaged-dev.yaml \
+  #           --capabilities CAPABILITY_IAM \
+  #           --region ${AWS_REGION} \
+  #           --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
+  #           --no-fail-on-empty-changeset \
+  #           --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
+  #           --parameter-overrides Environment=dev
+
+  # deploy-uat:
+  #   environment: uat
+  #   needs: [deploy-dev]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v2
+  #     - uses: aws-actions/setup-sam@v1
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: packaged-uat.yaml
+  #         path: services/inventory
+
+  #     - name: Assume the uat pipeline user role
+  #       uses: aws-actions/configure-aws-credentials@v1
+  #       with:
+  #         aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ env.AWS_REGION }}
+  #         role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_UAT }}
+  #         role-session-name: uat-deployment
+  #         role-duration-seconds: 900
+  #         role-skip-session-tagging: true
+
+  #     - name: Deploy to uat account
+  #       run: |
+  #         cd services/inventory && sam deploy --stack-name ${STACK_NAME} \
+  #           --template packaged-uat.yaml \
+  #           --capabilities CAPABILITY_IAM \
+  #           --region ${AWS_REGION} \
+  #           --s3-bucket ${ARTIFACTS_BUCKET_UAT} \
+  #           --no-fail-on-empty-changeset \
+  #           --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_UAT} \
+  #           --parameter-overrides Environment=uat
+
+  # deploy-prod:
+  #   environment: prod
+  #   needs: [deploy-uat]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v2
+  #     - uses: aws-actions/setup-sam@v1
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: packaged-prod.yaml
+  #         path: services/inventory
+
+  #     - name: Assume the prod pipeline user role
+  #       uses: aws-actions/configure-aws-credentials@v1
+  #       with:
+  #         aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ env.AWS_REGION }}
+  #         role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_PROD }}
+  #         role-session-name: prod-deployment
+  #         role-duration-seconds: 900
+  #         role-skip-session-tagging: true
+
+  #     - name: Deploy to production account
+  #       run: |
+  #         cd services/inventory && sam deploy --stack-name ${STACK_NAME} \
+  #           --template packaged-prod.yaml \
+  #           --capabilities CAPABILITY_IAM \
+  #           --region ${AWS_REGION} \
+  #           --s3-bucket ${ARTIFACTS_BUCKET_PROD} \
+  #           --no-fail-on-empty-changeset \
+  #           --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_PROD} \
+  #           --parameter-overrides Environment=prod

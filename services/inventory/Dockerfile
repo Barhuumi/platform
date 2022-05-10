@@ -1,14 +1,15 @@
 # FROM node:16.4
 # M1 arm architecture
 FROM amd64/node
+# FROM node:14-alpine
 
 WORKDIR /app
 
-COPY package*.json .
+COPY package*.json ./
 RUN npm install
 
-COPY . .
+COPY . ./
 
-CMD node index.js
+CMD node src/api.js
 
 EXPOSE 3001
