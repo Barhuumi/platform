@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  platform-infrastructure
+
+Transform:
+  - AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    AllowedValues:
+      - dev
+      - uat
+      - prod
+    Type: String
+    Default: dev
+
+Mappings:
+  Environments:
+    dev:
+      PrivateSubnetIds:
+        [
+          'subnet-01a3217e90b666d42',
+          'subnet-0ae1665ea7d314ad2',
+          'subnet-0cb2ad6d1b8365a8b',
+        ]
+      VpcId: 'vpc-0d81531e452c38eeb'
+    uat:
+      PrivateSubnetIds:
+        [
+          'subnet-0d18a52c817054623',
+          'subnet-039756cdd4744551d',
+          'subnet-08d4791ecafcc39ed',
+        ]
+      VpcId: 'vpc-0fc0605dce40f48e6'
+    prod:
+      PrivateSubnetIds:
+        ['subnet-6c92f105', 'subnet-6e66c914', 'subnet-dfb94493']
+      VpcId: 'vpc-3964fd51'
+
+Resources:
+  InventoryServiceRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: inventory-service-repository
+      ImageTagMutability: IMMUTABLE
+      # LifecyclePolicy: Should set a lifecycle policy on the repositories so we can set rules to auto expire and delete old images after a certain time
+      # https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html
+
+  MicroservicesECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: microservices-cluster
+
+  ApplicationLoadBalancerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG for the application load balancer
+      GroupName: application-load-balancer-sg
+      SecurityGroupIngress:
+        - CidrIpv6: ::/0
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: TCP
+          Description: Inbound rule for IPv6 traffic
+        - CidrIp: 0.0.0.0/0
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: TCP
+          Description: Inbound rule for IPv4 traffic
+
+  EcsServicesSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG that filters that traffic that is allowed to go to your containers.
+      GroupName: ecs-services-sg
+      SecurityGroupIngress:
+        - CidrIpv6: ::/0
+          FromPort: 3001
+          ToPort: 3001
+          IpProtocol: TCP
+          Description: Inbound rule for IPv6 traffic
+        - CidrIp: 0.0.0.0/0
+          FromPort: 3001
+          ToPort: 3001
+          IpProtocol: TCP
+          Description: Inbound rule for IPv4 traffic
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: application-load-balancer
+      Subnets: !FindInMap
+        - Environments
+        - !Ref Environment
+        - PrivateSubnetIds
+      Type: application
+      SecurityGroups:
+        - !GetAtt ApplicationLoadBalancerSG.GroupId
+
+  ## Target group and listener should live in individual service stacks and be service specific
+  ApplicationLoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: alb-target-group
+      VpcId: !FindInMap
+        - Environments
+        - !Ref Environment
+        - VpcId
+      Protocol: HTTP
+      Port: 3001
+      HealthCheckPath: /health/status
+      TargetType: ip
+
+  ApplicationLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref ApplicationLoadBalancerTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+Outputs:
+  oApplicationLoadBalancerArn:
+    Description: Application Load Balancer ARN
+    Value: !Ref ApplicationLoadBalancer
+    Export:
+      Name: !Sub ${AWS::StackName}-application-load-balancer-arn
+  oApplicationLoadBalancerTargetGroupArn:
+    Description: Application Load Balancer ARN
+    Value: !Ref ApplicationLoadBalancerTargetGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-alb-target-group-arn
+  oMicroservicesEcsClusterName:
+    Description: Microservices ECS cluster name
+    Value: !Ref MicroservicesECSCluster
+    Export:
+      Name: !Sub ${AWS::StackName}-microservices-ecs-cluster-name
+  oInventoryServiceRepositoryUri:
+    Description: Inventory Service Repository Uri
+    Value: !GetAtt InventoryServiceRepository.RepositoryUri
+    Export:
+      Name: !Sub ${AWS::StackName}-inventory-service-repository-uri
+  oEcsServicesSgGroupId:
+    Description: The group ID of the ecs security group
+    Value: !GetAtt EcsServicesSg.GroupId
+    Export:
+      Name: !Sub ${AWS::StackName}-ecs-services-sg-group-id

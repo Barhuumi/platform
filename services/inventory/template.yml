@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  serverless-api
+
+Transform:
+  - AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    AllowedValues:
+      - dev
+      - uat
+      - prod
+    Type: String
+    Default: dev
+  ServiceName:
+    Type: String
+    Default: inventory-service
+
+Mappings:
+  # subnets should be pulled in via infrastructure strack
+  Environments:
+    dev:
+      PrivateSubnetIds:
+        [
+          'subnet-01a3217e90b666d42',
+          'subnet-0ae1665ea7d314ad2',
+          'subnet-0cb2ad6d1b8365a8b',
+        ]
+      VpcId: 'vpc-0d81531e452c38eeb'
+    uat:
+      PrivateSubnetIds:
+        [
+          'subnet-0d18a52c817054623',
+          'subnet-039756cdd4744551d',
+          'subnet-08d4791ecafcc39ed',
+        ]
+      VpcId: 'vpc-0fc0605dce40f48e6'
+    prod:
+      PrivateSubnetIds:
+        ['subnet-6c92f105', 'subnet-6e66c914', 'subnet-dfb94493']
+      VpcId: 'vpc-3964fd51'
+
+Resources:
+  # as per https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html
+  InventoryServiceExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ServiceName}-task-execution-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  InventoryServiceTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Ref InventoryServiceExecutionRole
+      Cpu: 256
+      Memory: 512
+      NetworkMode: awsvpc # must be set for fargate
+      ContainerDefinitions:
+        - Name: !Sub ${ServiceName}-container
+          Image: !ImportValue  platform-infrastructure-inventory-service-repository-uri
+          MemoryReservation: 256
+          Memory: 512
+          PortMappings:
+            - ContainerPort: 3001 # port mapping
+              Protocol: tcp
+
+  # ECS Service
+  InventoryECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      LaunchType: FARGATE
+      Cluster: !ImportValue platform-infrastructure-microservices-ecs-cluster-name
+      TaskDefinition:
+        Ref: InventoryServiceTaskDefinition
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups: 
+            - !ImportValue platform-infrastructure-ecs-services-sg-group-id
+          Subnets: !FindInMap
+            - Environments
+            - !Ref Environment
+            - PrivateSubnetIds
+      LoadBalancers:
+        - TargetGroupArn: !ImportValue platform-infrastructure-alb-target-group-arn
+          ContainerPort: 3001
+          ContainerName: !Sub ${ServiceName}-container
