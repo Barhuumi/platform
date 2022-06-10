@@ -10,9 +10,6 @@ Parameters:
       - prod
     Type: String
     Default: dev
-  pStackName:
-    Type: String
-    Default: platform-infrastructure
 
 Mappings:
   mEnvironments:
@@ -92,32 +89,32 @@ Outputs:
     Description: Application Load Balancer ARN
     Value: !Ref ApplicationLoadBalancer
     Export:
-      Name: !Sub ${AWS::pStackName}-application-load-balancer-arn
+      Name: !Sub ${AWS::StackName}-application-load-balancer-arn
   oMicroservicesEcsClusterName:
     Description: Microservices ECS cluster name
     Value: !Ref MicroservicesECSCluster
     Export:
-      Name: !Sub ${AWS::pStackName}-microservices-ecs-cluster-name
+      Name: !Sub ${AWS::StackName}-microservices-ecs-cluster-name
   oPlatformServicesEventBusName:
     Description: Platform services event bus name
     Value: !Ref PlatformServicesEventBus
     Export:
-      Name: !Sub ${AWS::pStackName}-services-event-bus-name
+      Name: !Sub ${AWS::StackName}-services-event-bus-name
   oPlatformServicesEventBusArn:
     Description: Platform services event bus ARN
     Value: !GetAtt PlatformServicesEventBus.Arn
     Export:
-      Name: !Sub ${AWS::pStackName}-services-event-bus-arn
+      Name: !Sub ${AWS::StackName}-services-event-bus-arn
   oPartnersEventBusName:
     Description: Platform partners event bus name
     Value: !Ref PlatformPartnersEventBus
     Export:
-      Name: !Sub ${AWS::pStackName}-partners-event-bus-name
+      Name: !Sub ${AWS::StackName}-partners-event-bus-name
   oPlatformPartnersEventBusArn:
     Description: Platform partners event bus ARN
     Value: !GetAtt PlatformPartnersEventBus.Arn
     Export:
-      Name: !Sub ${AWS::pStackName}-partners-event-bus-arn
+      Name: !Sub ${AWS::StackName}-partners-event-bus-arn
   oPrivateSubnetA:
     Description: Private subnet A id
     Value: !FindInMap
@@ -125,7 +122,7 @@ Outputs:
       - !Ref pEnvironment
       - PrivateSubnetA
     Export:
-      Name: !Sub ${AWS::pStackName}-vpc-private-subnet-a-id
+      Name: !Sub ${AWS::StackName}-vpc-private-subnet-a-id
   oPrivateSubnetB:
     Description: Private subnet B id
     Value: !FindInMap
@@ -133,7 +130,7 @@ Outputs:
       - !Ref pEnvironment
       - PrivateSubnetB
     Export:
-      Name: !Sub ${AWS::pStackName}-vpc-private-subnet-b-id
+      Name: !Sub ${AWS::StackName}-vpc-private-subnet-b-id
   oPrivateSubnetC:
     Description: Private subnet C id
     Value: !FindInMap
@@ -141,7 +138,7 @@ Outputs:
       - !Ref pEnvironment
       - PrivateSubnetC
     Export:
-      Name: !Sub ${AWS::pStackName}-vpc-private-subnet-c-id
+      Name: !Sub ${AWS::StackName}-vpc-private-subnet-c-id
   oVpcId:
     Description: VPC id
     Value: !FindInMap
@@ -149,11 +146,11 @@ Outputs:
       - !Ref pEnvironment
       - VpcId
     Export:
-      Name: !Sub ${AWS::pStackName}-vpc-id
+      Name: !Sub ${AWS::StackName}-vpc-id
   ## ECR Repositories
   oInventoryServiceRepositoryUri:
     Description: Inventory Service Repository Uri
     # Value: !GetAtt InventoryServiceRepository.RepositoryUri
     Value: !GetAtt EcrRepositoriesStack.Outputs.oInventoryServiceRepositoryUri
     Export:
-      Name: !Sub ${AWS::pStackName}-inventory-service-repository-uri
+      Name: !Sub ${AWS::StackName}-inventory-service-repository-uri
