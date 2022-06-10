@@ -158,7 +158,7 @@ jobs:
             --parameter-overrides pEnvironment=dev \
             --tags \
                 BUILD_COMMIT=${{ github.sha }} \
-                BUILD_WORKFLOW=${{ GITHUB_WORKFLOW_ID }}
+                BUILD_WORKFLOW=${GITHUB_WORKFLOW_ID}
 
   deploy-uat:
     environment: uat
