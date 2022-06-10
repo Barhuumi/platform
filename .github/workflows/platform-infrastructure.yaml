@@ -12,7 +12,6 @@ env:
   STACK_NAME: platform-infrastructure
   AWS_REGION: eu-west-2
   SAM_TEMPLATE: template.yaml
-  GITHUB_WORKFLOW_ID: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
   ## deployment pipeline user
   PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
   PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
@@ -158,7 +157,7 @@ jobs:
             --parameter-overrides pEnvironment=dev \
             --tags \
                 BUILD_COMMIT=${{ github.sha }} \
-                BUILD_WORKFLOW=${GITHUB_WORKFLOW_ID}
+                BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   deploy-uat:
     environment: uat
