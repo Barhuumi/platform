@@ -8,6 +8,10 @@ on:
     paths:
       - infrastructure/**
 
+defaults:
+  run:
+    working-directory: infrastructure
+
 env:
   STACK_NAME: platform-infrastructure
   AWS_REGION: eu-west-2
@@ -46,7 +50,7 @@ jobs:
           echo "PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}"
 
       - name: Build resources
-        run: cd infrastructure && sam build --template ${SAM_TEMPLATE} --use-container
+        run: sam build --template ${SAM_TEMPLATE} --use-container
 
       ## Package the dev stack
       - name: Assume the dev pipeline user role
@@ -62,7 +66,7 @@ jobs:
 
       - name: Upload artifacts to dev artifact buckets
         run: |
-          cd infrastructure && sam package \
+          sam package \
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
             --region ${AWS_REGION} \
             --output-template-file packaged-dev.yaml
@@ -86,7 +90,7 @@ jobs:
 
       - name: Upload artifacts to uat artifact buckets
         run: |
-          cd infrastructure && sam package \
+          sam package \
             --s3-bucket ${ARTIFACTS_BUCKET_UAT} \
             --region ${AWS_REGION} \
             --output-template-file packaged-uat.yaml
@@ -110,7 +114,7 @@ jobs:
 
       - name: Upload artifacts to production artifact buckets
         run: |
-          cd infrastructure && sam package \
+          sam package \
             --s3-bucket ${ARTIFACTS_BUCKET_PROD} \
             --region ${AWS_REGION} \
             --output-template-file packaged-prod.yaml
@@ -149,7 +153,7 @@ jobs:
 
       - name: Deploy to dev account
         run: |
-          cd infrastructure && sam deploy --stack-name ${STACK_NAME} \
+          sam deploy --stack-name ${STACK_NAME} \
             --template packaged-dev.yaml \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
             --region ${AWS_REGION} \
@@ -189,7 +193,7 @@ jobs:
 
       - name: Deploy to uat account
         run: |
-          cd infrastructure && sam deploy --stack-name ${STACK_NAME} \
+          sam deploy --stack-name ${STACK_NAME} \
             --template packaged-uat.yaml \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
             --region ${AWS_REGION} \
@@ -229,7 +233,7 @@ jobs:
 
       - name: Deploy to production account
         run: |
-          cd infrastructure && sam deploy --stack-name ${STACK_NAME} \
+          sam deploy --stack-name ${STACK_NAME} \
             --template packaged-prod.yaml \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
             --region ${AWS_REGION} \
