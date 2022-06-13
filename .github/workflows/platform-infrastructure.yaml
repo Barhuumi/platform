@@ -123,6 +123,8 @@ jobs:
   deploy-dev:
     environment: dev
     needs: [build-and-package]
+    concurrency:
+      group: ${{ format('{0}-{1}', github.workflow, github.job) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -162,6 +164,8 @@ jobs:
   deploy-uat:
     environment: uat
     needs: [deploy-dev]
+    concurrency:
+      group: ${{ format('{0}-{1}', github.workflow, github.job) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -187,7 +191,7 @@ jobs:
         run: |
           cd infrastructure && sam deploy --stack-name ${STACK_NAME} \
             --template packaged-uat.yaml \
-            --capabilities CAPABILITY_IAM \
+            --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
             --region ${AWS_REGION} \
             --s3-bucket ${ARTIFACTS_BUCKET_UAT} \
             --no-fail-on-empty-changeset \
@@ -200,6 +204,8 @@ jobs:
   deploy-prod:
     environment: prod
     needs: [deploy-uat]
+    concurrency:
+      group: ${{ format('{0}-{1}', github.workflow, github.job) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -225,7 +231,7 @@ jobs:
         run: |
           cd infrastructure && sam deploy --stack-name ${STACK_NAME} \
             --template packaged-prod.yaml \
-            --capabilities CAPABILITY_IAM \
+            --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
             --region ${AWS_REGION} \
             --s3-bucket ${ARTIFACTS_BUCKET_PROD} \
             --no-fail-on-empty-changeset \
