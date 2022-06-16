@@ -88,7 +88,7 @@ jobs:
         id: dev-build-docker-image
         env:
           ECR_REGISTRY: ${{ steps.dev-login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY_NAME }}
+          ECR_REPOSITORY: inventory-service-repository
           IMAGE_TAG: ${{ github.sha }}
         run: |
           cd services/inventory
