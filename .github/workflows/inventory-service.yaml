@@ -4,9 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - develop #temp ignore
+      - main #temp ignore
     paths:
       - services/inventory/**
+      - .github/workflows/inventory-service.yaml
 
 env:
   STACK_NAME: inventory-service
