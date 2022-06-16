@@ -112,6 +112,19 @@ jobs:
                 BUILD_COMMIT=${{ github.sha }} \
                 BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
+
+  echo-job:
+    environment: dev
+    needs: [build-and-package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo IMAGE TAG
+        run: |
+          echo "IMAGE_TAG_OUTPUT_DEV: ${{needs.build-and-package.outputs.IMAGE_TAG_DEV}}"
+          echo "IMAGE_TAG_OUTPUT_DEV: ${{needs.build-and-package.outputs.IMAGE_TAG_DEV}}"
+          echo "IMAGE_TAG_OUTPUT_UAT: ${{needs.build-and-package.outputs.IMAGE_TAG_UAT}}"
+          echo "IMAGE_TAG_OUTPUT_PROD: ${{needs.build-and-package.outputs.IMAGE_TAG_PROD}}"
+
   # deploy-dev:
   #   environment: dev
   #   needs: [build-and-package]
