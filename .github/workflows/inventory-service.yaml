@@ -188,7 +188,7 @@ jobs:
       - name: Echo IMAGE TAG
         run: |
           echo "IMAGE_TAG_OUTPUT_DEV: ${{needs.build-and-package.outputs.IMAGE_TAG_DEV}}"
-          echo "IMAGE_TAG_OUTPUT_DEV: ${{build-and-package.outputs.IMAGE_TAG_DEV}}"
+          echo "IMAGE_TAG_OUTPUT_DEV: ${{needs.build-and-package.outputs.IMAGE_TAG_DEV}}"
           echo "IMAGE_TAG_OUTPUT_UAT: ${{needs.build-and-package.outputs.IMAGE_TAG_UAT}}"
           echo "IMAGE_TAG_OUTPUT_PROD: ${{needs.build-and-package.outputs.IMAGE_TAG_PROD}}"
 
