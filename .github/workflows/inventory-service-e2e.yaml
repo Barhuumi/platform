@@ -34,10 +34,10 @@ jobs:
   build-and-package:
     runs-on: ubuntu-latest
     # Map a step output to a job output
-    # outputs:
-    #   IMAGE_TAG_DEV: ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }}
-    #   IMAGE_TAG_UAT: ${{ steps.uat-build-docker-image.outputs.IMAGE_TAG_UAT }}
-    #   IMAGE_TAG_PROD: ${{ steps.prod-build-docker-image.outputs.IMAGE_TAG_PROD }}
+    outputs:
+      IMAGE_TAG_DEV: ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }}
+      IMAGE_TAG_UAT: ${{ steps.uat-build-docker-image.outputs.IMAGE_TAG_UAT }}
+      IMAGE_TAG_PROD: ${{ steps.prod-build-docker-image.outputs.IMAGE_TAG_PROD }}
 
     steps:
       - uses: actions/checkout@v2
@@ -65,7 +65,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_DEV }}
           role-session-name: dev-packaging
-          role-duration-seconds: 1800
+          role-duration-seconds: 900
           role-skip-session-tagging: true
 
       - name: Upload artifacts to dev artifact buckets
