@@ -93,6 +93,13 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=IMAGE_TAG_DEV::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > docker-dev-image-tag.txt
+
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: docker-dev-image-tag.txt
+          path: docker-dev-image-tag.txt
 
       - name: Deploy to dev account
         run: |  
