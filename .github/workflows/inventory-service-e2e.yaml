@@ -99,7 +99,7 @@ jobs:
       - run: echo ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} > docker-dev-image.txt
       - uses: actions/upload-artifact@v2
         with:
-          path: docker-dev-image.txt
+          name: docker-dev-image.txt
 
       # - name: Deploy to dev account
       #   run: |  
@@ -123,10 +123,12 @@ jobs:
     needs: [build-and-package]
     runs-on: ubuntu-latest
     steps:
+      - name: Display structure of downloaded files
+        run: ls -R
+
       - uses: actions/download-artifact@v2
         with:
-          path: docker-dev-image.txt
-
+          name: docker-dev-image.txt
 
       - name: Echo IMAGE TAG
         run: |
