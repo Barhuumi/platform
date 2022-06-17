@@ -9,6 +9,10 @@ on:
       - services/inventory/**
       - .github/workflows/inventory-service-e2e.yaml
 
+defaults:
+  run:
+    working-directory: services/inventory
+
 env:
   STACK_NAME: inventory-service
   ECR_REPOSITORY_NAME: inventory-service-repository
@@ -33,11 +37,6 @@ env:
 jobs:
   build-and-package:
     runs-on: ubuntu-latest
-    # Map a step output to a job output
-    # outputs:
-    #   IMAGE_TAG_DEV: ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }}
-    #   IMAGE_TAG_UAT: ${{ steps.uat-build-docker-image.outputs.IMAGE_TAG_UAT }}
-    #   IMAGE_TAG_PROD: ${{ steps.prod-build-docker-image.outputs.IMAGE_TAG_PROD }}
 
     steps:
       - uses: actions/checkout@v2
@@ -54,7 +53,7 @@ jobs:
           echo "PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}"
 
       - name: Build resources
-        run: cd services/inventory && sam build --template ${SAM_TEMPLATE} --use-container
+        run: sam build --template ${SAM_TEMPLATE} --use-container
 
       ## Package the dev stack
       - name: Assume the dev pipeline user role
@@ -70,7 +69,7 @@ jobs:
 
       - name: Upload artifacts to dev artifact buckets
         run: |
-          cd services/inventory && sam package \
+          sam package \
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
             --region ${AWS_REGION} \
             --output-template-file packaged-dev.yaml
@@ -82,70 +81,34 @@ jobs:
 
       - name: Login to Amazon ECR
         id: dev-login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@aaf69d68aa3fb14c1d5a6be9ac61fe15b48453a2
 
       - name: Build, tag, and push docker image to Amazon ECR
         id: dev-build-docker-image
         env:
           ECR_REGISTRY: ${{ steps.dev-login-ecr.outputs.registry }}
-          ECR_REPOSITORY: inventory-service-repository
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY_NAME }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          cd services/inventory
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=IMAGE_TAG_DEV::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - run: |
-          cd services/inventory
-          echo ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} > docker-dev-image.txt
-      - uses: actions/upload-artifact@v2
-        with:
-          name: docker-dev-image.txt
-          path: services/inventory
-
-      # - name: Deploy to dev account
-      #   run: |  
-      #     cd services/inventory && sam deploy --stack-name ${STACK_NAME} \
-      #       --template packaged-dev.yaml \
-      #       --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
-      #       --region ${AWS_REGION} \
-      #       --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
-      #       --no-fail-on-empty-changeset \
-      #       --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
-      #       --parameter-overrides \
-      #           pEnvironment=dev \
-      #           pImageTag=${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} \
-      #       --tags \
-      #           BUILD_COMMIT=${{ github.sha }} \
-      #           BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-
-  echo-job:
-    environment: dev
-    needs: [build-and-package]
-    runs-on: ubuntu-latest
-    steps:
-
-      - uses: actions/download-artifact@v2
-        with:
-          name: docker-dev-image.txt
-          path: services/inventory
-
-      - name: Display structure of downloaded files
-        run: ls -R
-
-      - name: Echo IMAGE TAG
-        run: |
-          cd services/inventory
-          value= `cat docker-dev-image.txt`
-          echo The result is $value
-
-      - name: Echo IMAGE TAG
-        run: |
-          cd services/inventory
-          value=cat docker-dev-image.txt
-          echo The result is $value
+      - name: Deploy to dev account
+        run: |  
+          sam deploy --stack-name ${STACK_NAME} \
+            --template packaged-dev.yaml \
+            --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+            --region ${AWS_REGION} \
+            --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
+            --no-fail-on-empty-changeset \
+            --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
+            --parameter-overrides \
+                pEnvironment=dev \
+                pImageTag=${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} \
+            --tags \
+                BUILD_COMMIT=${{ github.sha }} \
+                BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   # deploy-dev:
   #   environment: dev
@@ -174,7 +137,7 @@ jobs:
 
   #     - name: Deploy to dev account
   #       run: |
-  #         cd services/inventory && sam deploy --stack-name ${STACK_NAME} \
+  #         sam deploy --stack-name ${STACK_NAME} \
   #           --template packaged-dev.yaml \
   #           --capabilities CAPABILITY_IAM \
   #           --region ${AWS_REGION} \
@@ -209,7 +172,7 @@ jobs:
 
   #     - name: Deploy to uat account
   #       run: |
-  #         cd services/inventory && sam deploy --stack-name ${STACK_NAME} \
+  #         sam deploy --stack-name ${STACK_NAME} \
   #           --template packaged-uat.yaml \
   #           --capabilities CAPABILITY_IAM \
   #           --region ${AWS_REGION} \
@@ -244,7 +207,7 @@ jobs:
 
   #     - name: Deploy to production account
   #       run: |
-  #         cd services/inventory && sam deploy --stack-name ${STACK_NAME} \
+  #         sam deploy --stack-name ${STACK_NAME} \
   #           --template packaged-prod.yaml \
   #           --capabilities CAPABILITY_IAM \
   #           --region ${AWS_REGION} \
