@@ -137,7 +137,14 @@ jobs:
 
       - name: Echo IMAGE TAG
         run: |
-          value=`cat docker-dev-image.txt`
+          cd services/inventory
+          value= `cat docker-dev-image.txt`
+          echo The result is $value
+
+      - name: Echo IMAGE TAG
+        run: |
+          cd services/inventory
+          value=cat docker-dev-image.txt
           echo The result is $value
 
   # deploy-dev:
