@@ -124,13 +124,14 @@ jobs:
     needs: [build-and-package]
     runs-on: ubuntu-latest
     steps:
-      - name: Display structure of downloaded files
-        run: ls -R
 
       - uses: actions/download-artifact@v2
         with:
           name: docker-dev-image.txt
           path: services/inventory
+
+      - name: Display structure of downloaded files
+        run: ls -R
 
       - name: Echo IMAGE TAG
         run: |
