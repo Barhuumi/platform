@@ -34,10 +34,10 @@ jobs:
   build-and-package:
     runs-on: ubuntu-latest
     # Map a step output to a job output
-    outputs:
-      IMAGE_TAG_DEV: ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }}
-      IMAGE_TAG_UAT: ${{ steps.uat-build-docker-image.outputs.IMAGE_TAG_UAT }}
-      IMAGE_TAG_PROD: ${{ steps.prod-build-docker-image.outputs.IMAGE_TAG_PROD }}
+    # outputs:
+    #   IMAGE_TAG_DEV: ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }}
+    #   IMAGE_TAG_UAT: ${{ steps.uat-build-docker-image.outputs.IMAGE_TAG_UAT }}
+    #   IMAGE_TAG_PROD: ${{ steps.prod-build-docker-image.outputs.IMAGE_TAG_PROD }}
 
     steps:
       - uses: actions/checkout@v2
@@ -96,21 +96,26 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=IMAGE_TAG_DEV::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Deploy to dev account
-        run: |  
-          cd services/inventory && sam deploy --stack-name ${STACK_NAME} \
-            --template packaged-dev.yaml \
-            --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
-            --region ${AWS_REGION} \
-            --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
-            --no-fail-on-empty-changeset \
-            --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
-            --parameter-overrides \
-                pEnvironment=dev \
-                pImageTag=${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} \
-            --tags \
-                BUILD_COMMIT=${{ github.sha }} \
-                BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      - run: echo ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} > docker-dev-image.txt
+      - uses: actions/upload-artifact@v2
+        with:
+          path: docker-dev-image.txt
+
+      # - name: Deploy to dev account
+      #   run: |  
+      #     cd services/inventory && sam deploy --stack-name ${STACK_NAME} \
+      #       --template packaged-dev.yaml \
+      #       --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+      #       --region ${AWS_REGION} \
+      #       --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
+      #       --no-fail-on-empty-changeset \
+      #       --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
+      #       --parameter-overrides \
+      #           pEnvironment=dev \
+      #           pImageTag=${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} \
+      #       --tags \
+      #           BUILD_COMMIT=${{ github.sha }} \
+      #           BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
 
   echo-job:
@@ -118,12 +123,15 @@ jobs:
     needs: [build-and-package]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/download-artifact@v2
+        with:
+          path: docker-dev-image.txt
+
+
       - name: Echo IMAGE TAG
         run: |
-          echo "IMAGE_TAG_OUTPUT_DEV: ${{needs.build-and-package.outputs.IMAGE_TAG_DEV}}"
-          echo "IMAGE_TAG_OUTPUT_DEV: ${{needs.build-and-package.outputs.IMAGE_TAG_DEV}}"
-          echo "IMAGE_TAG_OUTPUT_UAT: ${{needs.build-and-package.outputs.IMAGE_TAG_UAT}}"
-          echo "IMAGE_TAG_OUTPUT_PROD: ${{needs.build-and-package.outputs.IMAGE_TAG_PROD}}"
+          value=`cat docker-dev-image.txt`
+          echo The result is $value
 
   # deploy-dev:
   #   environment: dev
