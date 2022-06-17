@@ -96,7 +96,9 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=IMAGE_TAG_DEV::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - run: echo ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} > docker-dev-image.txt
+      - run: |
+          cd services/inventory
+          echo ${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} > docker-dev-image.txt
       - uses: actions/upload-artifact@v2
         with:
           name: docker-dev-image.txt
