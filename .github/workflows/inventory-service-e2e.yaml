@@ -93,7 +93,7 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=IMAGE_TAG_DEV::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          echo `$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG` > docker-dev-image-tag.txt
+          echo $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > docker-dev-image-tag.txt
 
       - name: Display structure of downloaded files
         run: ls -R
