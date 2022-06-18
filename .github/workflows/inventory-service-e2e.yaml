@@ -155,7 +155,9 @@ jobs:
 
       - name: Print the final result X2
         shell: bash
-        run: echo The result is $value
+        run: |
+          echo `cat docker-dev-image-tag.txt`
+          echo cat docker-dev-image-tag.txt
 
 
       - name: Assume the dev pipeline user role
