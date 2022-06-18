@@ -153,6 +153,10 @@ jobs:
           value=`cat docker-dev-image-tag.txt`
           echo The result is $value
 
+      - name: Print the final result X2
+        shell: bash
+        run: echo The result is $value
+
 
       - name: Assume the dev pipeline user role
         uses: aws-actions/configure-aws-credentials@v1
