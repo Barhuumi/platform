@@ -142,9 +142,17 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: docker-dev-image-tag.txt
+          path: services/inventory
 
       - name: Display structure of downloaded files
         run: ls -R
+
+      - name: Print the final result
+        shell: bash
+        run: |
+          value=`cat docker-dev-image-tag.txt`
+          echo The result is $value
+
 
       - name: Assume the dev pipeline user role
         uses: aws-actions/configure-aws-credentials@v1
