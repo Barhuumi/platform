@@ -171,16 +171,32 @@ jobs:
           role-duration-seconds: 900
           role-skip-session-tagging: true
 
+
       - name: Deploy to dev account
-        run: |
+        run: |  
           sam deploy --stack-name ${STACK_NAME} \
             --template packaged-dev.yaml \
-            --capabilities CAPABILITY_IAM \
+            --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
             --region ${AWS_REGION} \
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
             --no-fail-on-empty-changeset \
             --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
-            --parameter-overrides pEnvironment=dev
+            --parameter-overrides \
+                pEnvironment=dev \
+                pImageTag=`cat docker-dev-image-tag.txt` \
+            --tags \
+                BUILD_COMMIT=${{ github.sha }} \
+                BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      # - name: Deploy to dev account
+      #   run: |
+      #     sam deploy --stack-name ${STACK_NAME} \
+      #       --template packaged-dev.yaml \
+      #       --capabilities CAPABILITY_IAM \
+      #       --region ${AWS_REGION} \
+      #       --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
+      #       --no-fail-on-empty-changeset \
+      #       --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
+      #       --parameter-overrides pEnvironment=dev
 
   # deploy-uat:
   #   environment: uat
