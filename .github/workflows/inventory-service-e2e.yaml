@@ -103,57 +103,70 @@ jobs:
           name: docker-dev-image-tag.txt
           path: services/inventory/docker-dev-image-tag.txt
 
+      # - name: Deploy to dev account
+      #   run: |  
+      #     sam deploy --stack-name ${STACK_NAME} \
+      #       --template packaged-dev.yaml \
+      #       --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+      #       --region ${AWS_REGION} \
+      #       --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
+      #       --no-fail-on-empty-changeset \
+      #       --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
+      #       --parameter-overrides \
+      #           pEnvironment=dev \
+      #           pImageTag=${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} \
+      #       --tags \
+      #           BUILD_COMMIT=${{ github.sha }} \
+      #           BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  deploy-dev:
+    environment: dev
+    needs: [build-and-package]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: aws-actions/setup-sam@v1
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: packaged-dev.yaml
+          path: services/inventory
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: docker-dev-image-tag.txt
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Assume the dev pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_DEV }}
+          role-session-name: dev-deployment
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
       - name: Deploy to dev account
-        run: |  
+        run: |
           sam deploy --stack-name ${STACK_NAME} \
             --template packaged-dev.yaml \
-            --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+            --capabilities CAPABILITY_IAM \
             --region ${AWS_REGION} \
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
             --no-fail-on-empty-changeset \
             --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
-            --parameter-overrides \
-                pEnvironment=dev \
-                pImageTag=${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} \
-            --tags \
-                BUILD_COMMIT=${{ github.sha }} \
-                BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-  # deploy-dev:
-  #   environment: dev
-  #   needs: [build-and-package]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-python@v2
-  #     - uses: aws-actions/setup-sam@v1
-
-  #     - uses: actions/download-artifact@v2
-  #       with:
-  #         name: packaged-dev.yaml
-  #         path: services/inventory
-
-  #     - name: Assume the dev pipeline user role
-  #       uses: aws-actions/configure-aws-credentials@v1
-  #       with:
-  #         aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ env.AWS_REGION }}
-  #         role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_DEV }}
-  #         role-session-name: dev-deployment
-  #         role-duration-seconds: 900
-  #         role-skip-session-tagging: true
-
-  #     - name: Deploy to dev account
-  #       run: |
-  #         sam deploy --stack-name ${STACK_NAME} \
-  #           --template packaged-dev.yaml \
-  #           --capabilities CAPABILITY_IAM \
-  #           --region ${AWS_REGION} \
-  #           --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
-  #           --no-fail-on-empty-changeset \
-  #           --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
-  #           --parameter-overrides pEnvironment=dev
+            --parameter-overrides pEnvironment=dev
 
   # deploy-uat:
   #   environment: uat
