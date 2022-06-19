@@ -13,6 +13,7 @@ Parameters:
     AllowedValues:
       - dev
       - uat
+      - sandbox
       - prod
     Type: String
   pServiceName:
