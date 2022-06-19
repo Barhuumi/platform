@@ -62,6 +62,7 @@ jobs:
         run: |
           sam package \
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
+            --s3-prefix ${STACK_NAME} \
             --region ${AWS_REGION} \
             --output-template-file packaged-dev.yaml
 
@@ -133,6 +134,7 @@ jobs:
             --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
             --region ${AWS_REGION} \
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
+            --s3-prefix ${STACK_NAME} \
             --no-fail-on-empty-changeset \
             --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
             --parameter-overrides \
