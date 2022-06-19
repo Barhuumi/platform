@@ -65,6 +65,7 @@ jobs:
             --s3-prefix ${STACK_NAME} \
             --metadata \
                 commit=${{ github.sha }} \
+            --metadata \
                 workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
             --region ${AWS_REGION} \
             --output-template-file packaged-dev.yaml
@@ -140,6 +141,7 @@ jobs:
             --s3-prefix ${STACK_NAME} \
             --metadata \
                 commit=${{ github.sha }} \
+            --metadata \
                 workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
             --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
             --parameter-overrides \
