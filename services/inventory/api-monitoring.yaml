@@ -15,6 +15,10 @@ Parameters:
   pEnvironment:
     Description: The active environment
     Type: String
+  pForceDeploy:
+    Description: force
+    Default: force
+    Type: String
 
 Resources:
   AutoScalingRole:
