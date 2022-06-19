@@ -43,15 +43,6 @@ jobs:
       - uses: actions/setup-python@v2
       - uses: aws-actions/setup-sam@v1
 
-      - name: Echo env vars
-        run: |
-          echo "ARTIFACTS_BUCKET_DEV: ${{ env.ARTIFACTS_BUCKET_DEV }}"
-          echo "CLOUDFORMATION_EXECUTION_ROLE_DEV: ${{ env.CLOUDFORMATION_EXECUTION_ROLE_DEV }}"
-          echo "PIPELINE_EXECUTION_ROLE_DEV: ${{ env.PIPELINE_EXECUTION_ROLE_DEV }}"
-          echo "AWS_REGION: ${{ env.AWS_REGION }}"
-          echo "PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}"
-          echo "PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}"
-
       - name: Build resources
         run: sam build --template ${SAM_TEMPLATE} --use-container
 
@@ -67,21 +58,22 @@ jobs:
           role-duration-seconds: 900
           role-skip-session-tagging: true
 
-      - name: Upload artifacts to dev artifact buckets
+      - name: SAM package and upload to the dev artifact bucket
         run: |
           sam package \
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
             --region ${AWS_REGION} \
             --output-template-file packaged-dev.yaml
 
-      - uses: actions/upload-artifact@v2
+      - name: Upload artifact "packaged-dev.yaml"
+        uses: actions/upload-artifact@v3
         with:
           name: packaged-dev.yaml
           path: services/inventory
 
       - name: Login to Amazon ECR
         id: dev-login-ecr
-        uses: aws-actions/amazon-ecr-login@aaf69d68aa3fb14c1d5a6be9ac61fe15b48453a2
+        uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build, tag, and push docker image to Amazon ECR
         id: dev-build-docker-image
@@ -92,13 +84,10 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "::set-output name=IMAGE_TAG_DEV::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           echo $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > docker-dev-image-tag.txt
 
-      - name: Display structure of downloaded files
-        run: ls -R
-
-      - uses: actions/upload-artifact@v2
+      - name: Upload artifact "docker-dev-image-tag.txt"
+        uses: actions/upload-artifact@v3
         with:
           name: docker-dev-image-tag.txt
           path: services/inventory/docker-dev-image-tag.txt
@@ -112,26 +101,19 @@ jobs:
       - uses: actions/setup-python@v2
       - uses: aws-actions/setup-sam@v1
 
-      - name: Display structure of downloaded files before CF
-        run: ls -R
-
-      - name: download packaged-dev.yaml
+      - name: Download artifact "packaged-dev.yaml"
         uses: actions/download-artifact@v2
         with:
           name: packaged-dev.yaml
           path: services/inventory
 
-      - name: Display structure of downloaded files after CF
-        run: ls -R
-
-      - name: download docker dev image tag
+      - name: Download artifact "docker-dev-image-tag.txt"
         uses: actions/download-artifact@v2
         with:
           name: docker-dev-image-tag.txt
           path: services/inventory
 
-
-      - name: Assume the dev pipeline user rolepackaged-dev.yaml
+      - name: Assume the dev pipeline user role
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
