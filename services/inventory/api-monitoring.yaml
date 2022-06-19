@@ -15,6 +15,10 @@ Parameters:
   pEnvironment:
     Description: The active environment
     Type: String
+  pTemp:
+    Description: The active environment
+    Default: temp
+    Type: String
 
 Resources:
   AutoScalingRole:
