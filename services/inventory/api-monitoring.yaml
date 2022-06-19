@@ -90,8 +90,8 @@ Resources:
         Fn::Join:
           - '/'
           - - service
+            - !Ref pEcsClusterName
             - !Ref pEcsServiceName
-            - !Ref pServiceName
       ScalableDimension: 'ecs:service:DesiredCount'
       ServiceNamespace: 'ecs'
       StepScalingPolicyConfiguration:
