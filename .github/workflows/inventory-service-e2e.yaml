@@ -126,7 +126,7 @@ jobs:
           role-duration-seconds: 900
           role-skip-session-tagging: true
 
-      - name: Deploy to dev account
+      - name: Deploy to the dev account
         run: |  
           sam deploy --no-fail-on-empty-changeset --stack-name ${STACK_NAME} \
             --template packaged-dev.yaml \
