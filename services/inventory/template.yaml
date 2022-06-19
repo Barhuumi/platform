@@ -46,6 +46,7 @@ Resources:
         pServiceName: !Ref pServiceName
         pEnvironment: !Ref pEnvironment
         pEcsClusterName: !ImportValue platform-infrastructure-microservices-ecs-cluster-name
+        pEcsServiceName: !GetAtt ApiStack.Outputs.oEcsServiceName
 
   LambdaStack:
     Type: AWS::Serverless::Application
