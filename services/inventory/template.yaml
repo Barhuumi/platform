@@ -20,6 +20,8 @@ Parameters:
     Default: inventory-service
   pImageTag:
     Type: String
+  pTemp:
+    Type: String
 
 Resources:
   ApiStack:
