@@ -39,9 +39,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
-      - uses: aws-actions/setup-sam@v1
+      - uses: aws-actions/setup-sam@v2
 
       - name: Build resources
         run: sam build --template ${SAM_TEMPLATE} --use-container
@@ -97,18 +97,18 @@ jobs:
     needs: [build-and-package]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
-      - uses: aws-actions/setup-sam@v1
+      - uses: aws-actions/setup-sam@v2
 
       - name: Download artifact "packaged-dev.yaml"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: packaged-dev.yaml
           path: services/inventory
 
       - name: Download artifact "docker-dev-image-tag.txt"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: docker-dev-image-tag.txt
           path: services/inventory
@@ -123,7 +123,6 @@ jobs:
           role-session-name: dev-deployment
           role-duration-seconds: 900
           role-skip-session-tagging: true
-
 
       - name: Deploy to dev account
         run: |  
@@ -146,10 +145,10 @@ jobs:
   #   needs: [deploy-dev]
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v2
+  #     - uses: actions/checkout@v3
   #     - uses: actions/setup-python@v2
-  #     - uses: aws-actions/setup-sam@v1
-  #     - uses: actions/download-artifact@v2
+  #     - uses: aws-actions/setup-sam@v2
+  #     - uses: actions/download-artifact@v3
   #       with:
   #         name: packaged-uat.yaml
   #         path: services/inventory
@@ -181,10 +180,10 @@ jobs:
   #   needs: [deploy-uat]
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v2
+  #     - uses: actions/checkout@v3
   #     - uses: actions/setup-python@v2
-  #     - uses: aws-actions/setup-sam@v1
-  #     - uses: actions/download-artifact@v2
+  #     - uses: aws-actions/setup-sam@v2
+  #     - uses: actions/download-artifact@v3
   #       with:
   #         name: packaged-prod.yaml
   #         path: services/inventory
