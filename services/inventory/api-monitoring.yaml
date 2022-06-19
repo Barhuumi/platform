@@ -17,7 +17,7 @@ Parameters:
     Type: String
   pForceDeploy:
     Description: force
-    Default: force_deploy_5
+    Default: force_deploy_6
     Type: String
 
 Resources:
