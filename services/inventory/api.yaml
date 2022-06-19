@@ -4,8 +4,7 @@ Description: Stack for provisioning our API
 
 Parameters:
   pServiceName:
-    Description: The image tag used to run the container
-    Default: inventory-service
+    Description: The service name
     Type: String
   pVpcId:
     Description: VPC where the resources will be created.
@@ -186,3 +185,8 @@ Resources:
         - TargetGroupArn: !Ref ApplicationLoadBalancerTargetGroup
           ContainerPort: 3001
           ContainerName: !Sub ${pServiceName}-container
+
+Outputs:
+  oEcsServiceName:
+    Description: ECS Service name
+    Value: !GetAtt InventoryECSService.Name

@@ -95,6 +95,8 @@ jobs:
   deploy-dev:
     environment: dev
     needs: [build-and-package]
+    concurrency:
+      group: ${{ format('{0}-{1}', github.workflow, github.job) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

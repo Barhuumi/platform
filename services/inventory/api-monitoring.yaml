@@ -6,6 +6,9 @@ Parameters:
   pServiceName:
     Description: The service name
     Type: String
+  pEcsServiceName:
+    Description: The ECS service name
+    Type: String
   pEcsClusterName:
     Description: The ECS cluster name
     Type: String
@@ -87,7 +90,7 @@ Resources:
         Fn::Join:
           - '/'
           - - service
-            - !Ref pEcsClusterName
+            - !Ref pEcsServiceName
             - !Ref pServiceName
       ScalableDimension: 'ecs:service:DesiredCount'
       ServiceNamespace: 'ecs'
