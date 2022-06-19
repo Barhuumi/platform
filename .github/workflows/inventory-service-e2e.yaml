@@ -64,7 +64,8 @@ jobs:
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
             --s3-prefix ${STACK_NAME} \
             --metadata \
-                build-commit-id=${{ github.sha }} \
+                commit=${{ github.sha }} \
+                workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
             --region ${AWS_REGION} \
             --output-template-file packaged-dev.yaml
 
@@ -138,7 +139,8 @@ jobs:
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
             --s3-prefix ${STACK_NAME} \
             --metadata \
-                build-commit-id=${{ github.sha }} \
+                commit=${{ github.sha }} \
+                workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
             --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
             --parameter-overrides \
                 pEnvironment=dev \
