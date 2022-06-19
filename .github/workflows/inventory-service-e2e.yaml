@@ -63,9 +63,7 @@ jobs:
           sam package \
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
             --s3-prefix ${STACK_NAME} \
-            --metadata \
-                BUILD_COMMIT=${{ github.sha }} \
-                BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --metadata BUILD_COMMIT=${{ github.sha }}, BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
             --region ${AWS_REGION} \
             --output-template-file packaged-dev.yaml
 
