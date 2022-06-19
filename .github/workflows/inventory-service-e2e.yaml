@@ -103,22 +103,6 @@ jobs:
           name: docker-dev-image-tag.txt
           path: services/inventory/docker-dev-image-tag.txt
 
-      # - name: Deploy to dev account
-      #   run: |  
-      #     sam deploy --stack-name ${STACK_NAME} \
-      #       --template packaged-dev.yaml \
-      #       --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
-      #       --region ${AWS_REGION} \
-      #       --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
-      #       --no-fail-on-empty-changeset \
-      #       --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
-      #       --parameter-overrides \
-      #           pEnvironment=dev \
-      #           pImageTag=${{ steps.dev-build-docker-image.outputs.IMAGE_TAG_DEV }} \
-      #       --tags \
-      #           BUILD_COMMIT=${{ github.sha }} \
-      #           BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
   deploy-dev:
     environment: dev
     needs: [build-and-package]
@@ -128,39 +112,26 @@ jobs:
       - uses: actions/setup-python@v2
       - uses: aws-actions/setup-sam@v1
 
-      - name: Display structure of downloaded files
+      - name: Display structure of downloaded files before CF
         run: ls -R
 
-      - uses: actions/download-artifact@v2
+      - name: download packaged-dev.yaml
+        uses: actions/download-artifact@v2
         with:
           name: packaged-dev.yaml
           path: services/inventory
 
-      - name: Display structure of downloaded files
+      - name: Display structure of downloaded files after CF
         run: ls -R
 
-      - uses: actions/download-artifact@v2
+      - name: download docker dev image tag
+        uses: actions/download-artifact@v2
         with:
           name: docker-dev-image-tag.txt
           path: services/inventory
 
-      - name: Display structure of downloaded files
-        run: ls -R
 
-      - name: Print the final result
-        shell: bash
-        run: |
-          value=`cat docker-dev-image-tag.txt`
-          echo The result is $value
-
-      - name: Print the final result X2
-        shell: bash
-        run: |
-          echo `cat docker-dev-image-tag.txt`
-          echo cat docker-dev-image-tag.txt
-
-
-      - name: Assume the dev pipeline user role
+      - name: Assume the dev pipeline user rolepackaged-dev.yaml
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
@@ -187,16 +158,6 @@ jobs:
             --tags \
                 BUILD_COMMIT=${{ github.sha }} \
                 BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      # - name: Deploy to dev account
-      #   run: |
-      #     sam deploy --stack-name ${STACK_NAME} \
-      #       --template packaged-dev.yaml \
-      #       --capabilities CAPABILITY_IAM \
-      #       --region ${AWS_REGION} \
-      #       --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
-      #       --no-fail-on-empty-changeset \
-      #       --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
-      #       --parameter-overrides pEnvironment=dev
 
   # deploy-uat:
   #   environment: uat
