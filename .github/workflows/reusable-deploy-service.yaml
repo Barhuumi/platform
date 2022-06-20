@@ -49,7 +49,7 @@ jobs:
       - name: CD to working directory "${{ inputs.CURRENT_WORKING_DIRECTORY }}"
         run: |
           pwd
-          cd ${{ inputs.working_directory }}
+          cd ${{ inputs.CURRENT_WORKING_DIRECTORY }}
           pwd
 
       - name: Echo env vars
