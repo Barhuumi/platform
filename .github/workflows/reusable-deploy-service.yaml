@@ -39,7 +39,7 @@ jobs:
   deploy:
     environment: ${{ inputs.ENVIRONMENT }}
     concurrency:
-      group: ${{ github.workflow }}-${{ github.job }}-${{ inputs.CURRENT_WORKING_DIRECTORY }}
+      group: ${{ github.workflow }}-${{ github.job }}-${{ inputs.ENVIRONMENT }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
