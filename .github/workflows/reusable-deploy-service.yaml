@@ -47,7 +47,10 @@ jobs:
       - uses: aws-actions/setup-sam@v2
 
       - name: CD to working directory "${{ inputs.CURRENT_WORKING_DIRECTORY }}"
-        run: cd  ${{ inputs.working_directory }}
+        run: |
+          pwd
+          cd ${{ inputs.working_directory }}
+          pwd
 
       - name: Echo env vars
         run: |
@@ -88,7 +91,9 @@ jobs:
           role-skip-session-tagging: true
 
       - name: Display structure of downloaded files
-        run: ls -R
+        run: |
+          pwd
+          ls -R
 
       - name: Echo docker dev image tag
         run: |
