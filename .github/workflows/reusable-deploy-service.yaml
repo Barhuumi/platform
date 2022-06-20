@@ -84,6 +84,9 @@ jobs:
           role-duration-seconds: 900
           role-skip-session-tagging: true
 
+      - name: Display structure of downloaded files
+        run: ls -R
+
       - name: Echo docker dev image tag
         run: |
           value=`cat docker-dev-image-tag.txt`
