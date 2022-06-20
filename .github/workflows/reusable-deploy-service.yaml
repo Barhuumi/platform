@@ -35,6 +35,10 @@ on:
       CLOUDFORMATION_EXECUTION_ROLE:
         required: true
   
+defaults:
+  run:
+    working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
+
 jobs:
   deploy:
     environment: ${{ inputs.ENVIRONMENT }}
