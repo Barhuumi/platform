@@ -222,7 +222,7 @@ jobs:
       CLOUDFORMATION_EXECUTION_ROLE: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_DEV }}
 
   deploy-uat:
-    needs: [build-and-package]
+    needs: [deploy-dev]
     uses: ./.github/workflows/reusable-deploy-service.yaml
     with:
       AWS_REGION: eu-west-2
@@ -240,7 +240,7 @@ jobs:
       CLOUDFORMATION_EXECUTION_ROLE: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_UAT }}
 
   deploy-prod:
-    needs: [build-and-package]
+    needs: [deploy-uat]
     uses: ./.github/workflows/reusable-deploy-service.yaml
     with:
       AWS_REGION: eu-west-2
