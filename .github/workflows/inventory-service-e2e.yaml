@@ -75,10 +75,11 @@ jobs:
         run: ls -R
 
       - name: Upload artifact "packaged-dev.yaml"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: packaged-dev.yaml
           path: services/inventory/packaged-dev.yaml
+          retention-days: 3
 
       - name: Login to Amazon ECR
         id: dev-login-ecr
@@ -96,10 +97,125 @@ jobs:
           echo $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > docker-dev-image-tag.txt
 
       - name: Upload artifact "docker-dev-image-tag.txt"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: docker-dev-image-tag.txt
           path: services/inventory/docker-dev-image-tag.txt
+          retention-days: 3
+
+      ## Package and build the uat stack
+      - name: Assume the uat pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_UAT }}
+          role-session-name: uat-packaging
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: SAM package and upload to the uat artifact bucket
+        run: |
+          sam package \
+            --s3-bucket ${ARTIFACTS_BUCKET_UAT} \
+            --s3-prefix ${STACK_NAME} \
+            --metadata \
+                commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --region ${AWS_REGION} \
+            --output-template-file packaged-uat.yaml
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Upload artifact "packaged-uat.yaml"
+        uses: actions/upload-artifact@v3
+        with:
+          name: packaged-uat.yaml
+          path: services/inventory/packaged-uat.yaml
+          retention-days: 3
+
+      - name: Login to Amazon ECR
+        id: uat-login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        id: uat-build-docker-image
+        env:
+          ECR_REGISTRY: ${{ steps.uat-login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > docker-uat-image-tag.txt
+
+      - name: Upload artifact "docker-uat-image-tag.txt"
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-uat-image-tag.txt
+          path: services/inventory/docker-uat-image-tag.txt
+          retention-days: 3
+
+      ## Package and build the prod stack
+      - name: Assume the prod pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_PROD }}
+          role-session-name: prod-packaging
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: SAM package and upload to the prod artifact bucket
+        run: |
+          sam package \
+            --s3-bucket ${ARTIFACTS_BUCKET_PROD} \
+            --s3-prefix ${STACK_NAME} \
+            --metadata \
+                commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --region ${AWS_REGION} \
+            --output-template-file packaged-prod.yaml
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Upload artifact "packaged-prod.yaml"
+        uses: actions/upload-artifact@v3
+        with:
+          name: packaged-prod.yaml
+          path: services/inventory/packaged-prod.yaml
+          retention-days: 3
+
+      - name: Login to Amazon ECR
+        id: prod-login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        id: prod-build-docker-image
+        env:
+          ECR_REGISTRY: ${{ steps.prod-login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > docker-prod-image-tag.txt
+
+      - name: Upload artifact "docker-prod-image-tag.txt"
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-prod-image-tag.txt
+          path: services/inventory/docker-prod-image-tag.txt
+          retention-days: 3
 
   deploy-dev:
     environment: dev
@@ -153,72 +269,106 @@ jobs:
                 BUILD_COMMIT=${{ github.sha }} \
                 BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-  # deploy-uat:
-  #   environment: uat
-  #   needs: [deploy-dev]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-python@v2
-  #     - uses: aws-actions/setup-sam@v2
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: packaged-uat.yaml
-  #         path: services/inventory
+  deploy-uat:
+    environment: uat
+    needs: [build-and-package]
+    concurrency:
+      group: ${{ format('{0}-{1}', github.workflow, github.job) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v2
+      - uses: aws-actions/setup-sam@v2
 
-  #     - name: Assume the uat pipeline user role
-  #       uses: aws-actions/configure-aws-credentials@v1
-  #       with:
-  #         aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ env.AWS_REGION }}
-  #         role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_UAT }}
-  #         role-session-name: uat-deployment
-  #         role-duration-seconds: 900
-  #         role-skip-session-tagging: true
+      - name: Download artifact "packaged-uat.yaml"
+        uses: actions/download-artifact@v3
+        with:
+          name: packaged-uat.yaml
+          path: services/inventory
 
-  #     - name: Deploy to uat account
-  #       run: |
-  #         sam deploy --stack-name ${STACK_NAME} \
-  #           --template packaged-uat.yaml \
-  #           --capabilities CAPABILITY_IAM \
-  #           --region ${AWS_REGION} \
-  #           --s3-bucket ${ARTIFACTS_BUCKET_UAT} \
-  #           --no-fail-on-empty-changeset \
-  #           --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_UAT} \
-  #           --parameter-overrides pEnvironment=uat
+      - name: Download artifact "docker-uat-image-tag.txt"
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-uat-image-tag.txt
+          path: services/inventory
 
-  # deploy-prod:
-  #   environment: prod
-  #   needs: [deploy-uat]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-python@v2
-  #     - uses: aws-actions/setup-sam@v2
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: packaged-prod.yaml
-  #         path: services/inventory
+      - name: Assume the uat pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_UAT }}
+          role-session-name: uat-deployment
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
 
-  #     - name: Assume the prod pipeline user role
-  #       uses: aws-actions/configure-aws-credentials@v1
-  #       with:
-  #         aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ env.AWS_REGION }}
-  #         role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_PROD }}
-  #         role-session-name: prod-deployment
-  #         role-duration-seconds: 900
-  #         role-skip-session-tagging: true
+      - name: Deploy to the uat account
+        run: |  
+          sam deploy --no-fail-on-empty-changeset --stack-name ${STACK_NAME} \
+            --template packaged-uat.yaml \
+            --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+            --region ${AWS_REGION} \
+            --s3-bucket ${ARTIFACTS_BUCKET_UAT} \
+            --s3-prefix ${STACK_NAME} \
+            --metadata \
+                commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_UAT} \
+            --parameter-overrides \
+                pEnvironment=uat \
+                pImageTag=`cat docker-uat-image-tag.txt` \
+            --tags \
+                BUILD_COMMIT=${{ github.sha }} \
+                BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-  #     - name: Deploy to production account
-  #       run: |
-  #         sam deploy --stack-name ${STACK_NAME} \
-  #           --template packaged-prod.yaml \
-  #           --capabilities CAPABILITY_IAM \
-  #           --region ${AWS_REGION} \
-  #           --s3-bucket ${ARTIFACTS_BUCKET_PROD} \
-  #           --no-fail-on-empty-changeset \
-  #           --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_PROD} \
-  #           --parameter-overrides pEnvironment=prod
+  deploy-prod:
+    environment: prod
+    needs: [build-and-package]
+    concurrency:
+      group: ${{ format('{0}-{1}', github.workflow, github.job) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v2
+      - uses: aws-actions/setup-sam@v2
+
+      - name: Download artifact "packaged-prod.yaml"
+        uses: actions/download-artifact@v3
+        with:
+          name: packaged-prod.yaml
+          path: services/inventory
+
+      - name: Download artifact "docker-prod-image-tag.txt"
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-prod-image-tag.txt
+          path: services/inventory
+
+      - name: Assume the prod pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE_PROD }}
+          role-session-name: prod-deployment
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
+      - name: Deploy to the prod account
+        run: |  
+          sam deploy --no-fail-on-empty-changeset --stack-name ${STACK_NAME} \
+            --template packaged-prod.yaml \
+            --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+            --region ${AWS_REGION} \
+            --s3-bucket ${ARTIFACTS_BUCKET_PROD} \
+            --s3-prefix ${STACK_NAME} \
+            --metadata \
+                commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_PROD} \
+            --parameter-overrides \
+                pEnvironment=prod \
+                pImageTag=`cat docker-prod-image-tag.txt` \
+            --tags \
+                BUILD_COMMIT=${{ github.sha }} \
+                BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
