@@ -1,0 +1,103 @@
+name: Reusable deploy workflow that deploys our standard services (Ecs APIs backed by Lambda event handlers)
+on:
+  workflow_call:
+    inputs:
+      AWS_REGION:
+        required: true
+        type: string
+      STACK_NAME:
+        required: true
+        type: string
+      ENVIRONMENT:
+        required: true
+        type: string
+      CURRENT_WORKING_DIRECTORY:
+        required: true
+        type: string
+      DOCKER_IMAGE_TAG_FILENAME:
+        required: true
+        type: string
+      SAM_PACKAGED_TEMPLATE_FILENAME:
+        required: true
+        type: string
+      ROLE_SESSION_NAME:
+        required: true
+        type: string
+    secrets:
+      PIPELINE_USER_AWS_ACCESS_KEY_ID:
+        required: true
+      PIPELINE_USER_AWS_SECRET_ACCESS_KEY:
+        required: true
+      PIPELINE_EXECUTION_ROLE:
+        required: true
+      ARTIFACTS_BUCKET:
+        required: true
+      CLOUDFORMATION_EXECUTION_ROLE:
+        required: true
+  
+jobs:
+  deploy:
+    environment: ${{ inputs.ENVIRONMENT }}
+    concurrency:
+      group: ${{ format('{0}-{1}', github.workflow, github.job) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v2
+      - uses: aws-actions/setup-sam@v2
+
+      - name: Echo env vars
+        run: |
+          echo "AWS_REGION: ${{ inputs.AWS_REGION }}"
+          echo "STACK_NAME: ${{ inputs.STACK_NAME }}"
+          echo "ENVIRONMENT: ${{ inputs.ENVIRONMENT }}"
+          echo "CURRENT_WORKING_DIRECTORY: ${{ inputs.CURRENT_WORKING_DIRECTORY }}"
+          echo "DOCKER_IMAGE_TAG_FILENAME: ${{ inputs.DOCKER_IMAGE_TAG_FILENAME }}"
+          echo "SAM_PACKAGED_TEMPLATE_FILENAME: ${{ inputs.SAM_PACKAGED_TEMPLATE_FILENAME }}"
+          echo "ROLE_SESSION_NAME: ${{ inputs.ROLE_SESSION_NAME }}"
+          echo "PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}"
+          echo "PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}"
+          echo "PIPELINE_EXECUTION_ROLE: ${{ secrets.PIPELINE_EXECUTION_ROLE }}"
+          echo "ARTIFACTS_BUCKET: ${{ secrets.ARTIFACTS_BUCKET }}"
+          echo "CLOUDFORMATION_EXECUTION_ROLE: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }}"
+
+      - name: Download artifact "${{ inputs.SAM_PACKAGED_TEMPLATE_FILENAME }}"
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.SAM_PACKAGED_TEMPLATE_FILENAME }}
+          path: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
+
+      - name: Download artifact "${{ inputs.DOCKER_IMAGE_TAG_FILENAME }}"
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.DOCKER_IMAGE_TAG_FILENAME }}
+          path: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
+
+      - name: Assume the ${{ inputs.ENVIRONMENT }} pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.AWS_REGION }}
+          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
+          role-session-name: ${{ inputs.ROLE_SESSION_NAME }}
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
+      - name: Deploy to the ${{ inputs.ENVIRONMENT }} account
+        run: |  
+          sam deploy --no-fail-on-empty-changeset --stack-name ${{ inputs.STACK_NAME }} \
+            --template ${{ inputs.SAM_PACKAGED_TEMPLATE_FILENAME }} \
+            --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+            --region ${AWS_REGION} \
+            --s3-bucket ${{ secrets.ARTIFACTS_BUCKET }} \
+            --s3-prefix ${{ inputs.STACK_NAME }} \
+            --metadata \
+                commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --role-arn ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }} \
+            --parameter-overrides \
+                pEnvironment=${{ inputs.ENVIRONMENT }} \
+                pImageTag=`cat ${{ inputs.DOCKER_IMAGE_TAG_FILENAME }}` \
+            --tags \
+                BUILD_COMMIT=${{ github.sha }} \
+                BUILD_WORKFLOW=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
