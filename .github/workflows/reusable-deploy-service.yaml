@@ -1,4 +1,4 @@
-name: Reusable deploy workflow that deploys our standard services (Ecs APIs backed by Lambda event handlers)
+name: Reusable "deploy" workflow that deploys our standard services (Ecs APIs backed by Lambda event handlers)
 on:
   workflow_call:
     inputs:
@@ -39,7 +39,7 @@ jobs:
   deploy:
     environment: ${{ inputs.ENVIRONMENT }}
     concurrency:
-      group: ${{ format('{0}-{1}', github.workflow, github.job) }}
+      group: ${{ format('{0}-{1}-{2}', github.workflow, github.job, ${{ inputs.ENVIRONMENT }}) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
