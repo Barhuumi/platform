@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: packaged-dev.yaml
-          path: services/inventory
+          path: services/inventory/packaged-dev.yaml
 
       - name: Login to Amazon ECR
         id: dev-login-ecr

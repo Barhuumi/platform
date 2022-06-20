@@ -149,5 +149,6 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 70
       ComparisonOperator: GreaterThanOrEqualToThreshold
+      ## TODO: Send an alert to a SNS topic that forwards alerts to Slack.
       AlarmActions:
         - !Ref ScaleUpPolicy
