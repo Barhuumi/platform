@@ -222,8 +222,8 @@ jobs:
     uses: ./.github/workflows/reusable-deploy-service.yaml
     with:
       AWS_REGION: ${{ env.AWS_REGION }}
-      STACK_NAME: ${{ env.AWS_REGION }}
-      ENVIRONMENT: ${{ env.AWS_REGION }}
+      STACK_NAME: ${{ env.STACK_NAME }}
+      ENVIRONMENT: dev
       CURRENT_WORKING_DIRECTORY: services/inventory
       DOCKER_IMAGE_TAG_FILENAME: docker-dev-image-tag.txt
       SAM_PACKAGED_TEMPLATE_FILENAME: packaged-dev.yaml
