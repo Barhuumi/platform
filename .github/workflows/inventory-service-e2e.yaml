@@ -177,6 +177,11 @@ jobs:
           path: services/inventory/packaged-prod.yaml
           retention-days: 3
 
+      - name: Display structure of downloaded files
+        run: |
+          pwd
+          ls -R
+
       - name: Login to Amazon ECR
         id: prod-login-ecr
         uses: aws-actions/amazon-ecr-login@v1
