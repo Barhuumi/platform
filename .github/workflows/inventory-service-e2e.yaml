@@ -37,7 +37,6 @@ env:
 jobs:
   build-and-package:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
@@ -221,6 +220,42 @@ jobs:
       PIPELINE_EXECUTION_ROLE: ${{ secrets.PIPELINE_EXECUTION_ROLE_DEV }}
       ARTIFACTS_BUCKET: ${{ secrets.ARTIFACTS_BUCKET_DEV }}
       CLOUDFORMATION_EXECUTION_ROLE: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_DEV }}
+
+  deploy-uat:
+    needs: [build-and-package]
+    uses: ./.github/workflows/reusable-deploy-service.yaml
+    with:
+      AWS_REGION: eu-west-2
+      STACK_NAME: inventory-service
+      ENVIRONMENT: uat
+      CURRENT_WORKING_DIRECTORY: services/inventory
+      DOCKER_IMAGE_TAG_FILENAME: docker-uat-image-tag.txt
+      SAM_PACKAGED_TEMPLATE_FILENAME: packaged-uat.yaml
+      ROLE_SESSION_NAME: uat-deployment
+    secrets:
+      PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+      PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+      PIPELINE_EXECUTION_ROLE: ${{ secrets.PIPELINE_EXECUTION_ROLE_UAT }}
+      ARTIFACTS_BUCKET: ${{ secrets.ARTIFACTS_BUCKET_UAT }}
+      CLOUDFORMATION_EXECUTION_ROLE: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_UAT }}
+
+  deploy-prod:
+    needs: [build-and-package]
+    uses: ./.github/workflows/reusable-deploy-service.yaml
+    with:
+      AWS_REGION: eu-west-2
+      STACK_NAME: inventory-service
+      ENVIRONMENT: prod
+      CURRENT_WORKING_DIRECTORY: services/inventory
+      DOCKER_IMAGE_TAG_FILENAME: docker-prod-image-tag.txt
+      SAM_PACKAGED_TEMPLATE_FILENAME: packaged-prod.yaml
+      ROLE_SESSION_NAME: prod-deployment
+    secrets:
+      PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+      PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+      PIPELINE_EXECUTION_ROLE: ${{ secrets.PIPELINE_EXECUTION_ROLE_PROD }}
+      ARTIFACTS_BUCKET: ${{ secrets.ARTIFACTS_BUCKET_PROD }}
+      CLOUDFORMATION_EXECUTION_ROLE: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_PROD }}
 
   # deploy-dev:
   #   environment: dev
