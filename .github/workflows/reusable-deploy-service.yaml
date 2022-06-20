@@ -84,6 +84,26 @@ jobs:
           role-duration-seconds: 900
           role-skip-session-tagging: true
 
+      - name: Echo docker dev image tag
+        run: |
+          value=`cat docker-dev-image-tag.txt`
+          echo $value
+
+      - name: Echo docker dev image tag
+        run: |
+          value=`cat docker-dev-image-tag.txt`
+          echo $value
+
+      - name: Echo docker dev image tag x2
+        run: |
+          value=`cat ${{ inputs.DOCKER_IMAGE_TAG_FILENAME }}`
+          echo $value
+
+      - name: Echo docker dev image tag x3
+        run: |
+          value=cat ${{ inputs.DOCKER_IMAGE_TAG_FILENAME }}
+          echo $value
+
       - name: Deploy to the ${{ inputs.ENVIRONMENT }} account
         run: |  
           sam deploy --no-fail-on-empty-changeset --stack-name ${{ inputs.STACK_NAME }} \

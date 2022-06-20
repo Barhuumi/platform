@@ -58,9 +58,6 @@ jobs:
           role-duration-seconds: 900
           role-skip-session-tagging: true
 
-      - name: Display structure of downloaded files
-        run: ls -R
-
       - name: SAM package and upload to the dev artifact bucket
         run: |
           sam package \
@@ -70,9 +67,6 @@ jobs:
                 commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
             --region ${AWS_REGION} \
             --output-template-file packaged-dev.yaml
-
-      - name: Display structure of downloaded files
-        run: ls -R
 
       - name: Upload artifact "packaged-dev.yaml"
         uses: actions/upload-artifact@v3
@@ -115,9 +109,6 @@ jobs:
           role-duration-seconds: 900
           role-skip-session-tagging: true
 
-      - name: Display structure of downloaded files
-        run: ls -R
-
       - name: SAM package and upload to the uat artifact bucket
         run: |
           sam package \
@@ -127,9 +118,6 @@ jobs:
                 commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
             --region ${AWS_REGION} \
             --output-template-file packaged-uat.yaml
-
-      - name: Display structure of downloaded files
-        run: ls -R
 
       - name: Upload artifact "packaged-uat.yaml"
         uses: actions/upload-artifact@v3
@@ -172,9 +160,6 @@ jobs:
           role-duration-seconds: 900
           role-skip-session-tagging: true
 
-      - name: Display structure of downloaded files
-        run: ls -R
-
       - name: SAM package and upload to the prod artifact bucket
         run: |
           sam package \
@@ -184,9 +169,6 @@ jobs:
                 commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
             --region ${AWS_REGION} \
             --output-template-file packaged-prod.yaml
-
-      - name: Display structure of downloaded files
-        run: ls -R
 
       - name: Upload artifact "packaged-prod.yaml"
         uses: actions/upload-artifact@v3
