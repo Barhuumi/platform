@@ -271,7 +271,7 @@ jobs:
 
   deploy-uat:
     environment: uat
-    needs: [build-and-package]
+    needs: [deploy-dev]
     concurrency:
       group: ${{ format('{0}-{1}', github.workflow, github.job) }}
     runs-on: ubuntu-latest
@@ -323,7 +323,7 @@ jobs:
 
   deploy-prod:
     environment: prod
-    needs: [build-and-package]
+    needs: [deploy-uat]
     concurrency:
       group: ${{ format('{0}-{1}', github.workflow, github.job) }}
     runs-on: ubuntu-latest
