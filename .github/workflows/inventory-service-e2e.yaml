@@ -219,7 +219,7 @@ jobs:
 
   deploy-dev:
     needs: [build-and-package]
-    uses: ./.github/workflows/services-reusable-workflows/deploy_service.yaml
+    uses: ./.github/workflows/reusable-deploy-service.yaml
     with:
       AWS_REGION: ${{ env.AWS_REGION }}
       STACK_NAME: ${{ env.AWS_REGION }}
