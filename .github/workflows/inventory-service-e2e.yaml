@@ -46,7 +46,7 @@ jobs:
       - name: Build resources
         run: sam build --template ${SAM_TEMPLATE} --use-container
 
-      ## Package the dev stack
+      ## Package and build the dev stack
       - name: Assume the dev pipeline user role
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -58,6 +58,9 @@ jobs:
           role-duration-seconds: 900
           role-skip-session-tagging: true
 
+      - name: Display structure of downloaded files
+        run: ls -R
+
       - name: SAM package and upload to the dev artifact bucket
         run: |
           sam package \
@@ -67,6 +70,9 @@ jobs:
                 commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
             --region ${AWS_REGION} \
             --output-template-file packaged-dev.yaml
+
+      - name: Display structure of downloaded files
+        run: ls -R
 
       - name: Upload artifact "packaged-dev.yaml"
         uses: actions/upload-artifact@v3
@@ -138,9 +144,7 @@ jobs:
             --s3-bucket ${ARTIFACTS_BUCKET_DEV} \
             --s3-prefix ${STACK_NAME} \
             --metadata \
-                commit=${{ github.sha }} \
-            --metadata \
-                workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+                commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
             --role-arn ${CLOUDFORMATION_EXECUTION_ROLE_DEV} \
             --parameter-overrides \
                 pEnvironment=dev \
