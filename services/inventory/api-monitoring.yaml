@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Monitors our ECS deployed API
-## TODO: Condition check to provision only in prod (after done testing)
 
 Parameters:
   pServiceName:
@@ -14,10 +13,6 @@ Parameters:
     Type: String
   pEnvironment:
     Description: The active environment
-    Type: String
-  pForceDeploy:
-    Description: force
-    Default: force_deploy_16
     Type: String
 
 Resources:
