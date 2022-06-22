@@ -46,6 +46,17 @@ jobs:
       - uses: actions/setup-python@v2
       - uses: aws-actions/setup-sam@v2
 
+      - name: Set env var
+        run: |
+          echo ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }} > $ENV_VAR_ONE
+          echo ${{ inputs.CURRENT_WORKING_DIRECTORY }} > $ENV_VAR_TWO
+
+      - name: Echo env vars
+        run: |
+          echo "AWS_REGION: $ENV_VAR_ONE"
+          echo "AWS_REGION: $ENV_VAR_TWO"
+
+
       - name: CD to working directory "${{ inputs.CURRENT_WORKING_DIRECTORY }}"
         run: |
           pwd
