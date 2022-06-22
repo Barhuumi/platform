@@ -4,7 +4,8 @@ export const publishEvent = async (event_type, event) => {
   const env_vars = {
     event_source: process.env.EVENT_SOURCE,
     platform_services_event_bus_arn: process.env.PLATFORM_SERVICES_EVENT_BUS_ARN,
-    aws_region: process.env.AWS_REGION
+    aws_region: process.env.AWS_REGION,
+    HECTARE: process.env.HECTARE
   }
   console.log('DEBUG_LOGGING: env_vars ', env_vars)
 
