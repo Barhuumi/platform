@@ -48,14 +48,18 @@ jobs:
 
       - name: Set env var
         run: |
-          echo ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }} > $ENV_VAR_ONE
-          echo ${{ inputs.CURRENT_WORKING_DIRECTORY }} > $ENV_VAR_TWO
+          echo "ENV_VAR_ONE=${{ inputs.CURRENT_WORKING_DIRECTORY }}" > $GITHUB_ENV
+          echo "ENV_VAR_TWO=${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }}" > $GITHUB_ENV
 
       - name: Echo env vars
         run: |
-          echo "AWS_REGION: $ENV_VAR_ONE"
-          echo "AWS_REGION: $ENV_VAR_TWO"
+          echo "ENV_VAR_ONE: $ENV_VAR_ONE"
+          echo "ENV_VAR_TWO: $ENV_VAR_TWO"
 
+      - name: Echo env vars_two
+        run: |
+          echo "ENV_VAR_ONE: ${{ env.ENV_VAR_ONE }}"
+          echo "ENV_VAR_TWO: ${{ env.ENV_VAR_TWO }}"
 
       - name: CD to working directory "${{ inputs.CURRENT_WORKING_DIRECTORY }}"
         run: |
