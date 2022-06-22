@@ -84,13 +84,6 @@ Resources:
     Properties:
       Name: partners-event-bus
 
-  HectareConfigParameter:
-    Type: AWS::SSM::Parameter
-    Description: Hectare config value
-    Properties:
-      Name: /platform/hectare-config-value
-      Type: "String"
-
 Outputs:
   oApplicationLoadBalancerArn:
     Description: Application Load Balancer ARN
