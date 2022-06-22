@@ -86,7 +86,7 @@ Resources:
 
   HectareConfigParameter:
     Type: AWS::SSM::Parameter
-    Description: Address for the auth v2 RDS database
+    Description: Hectare config value
     Properties:
       Name: /platform/hectare-config-value
       Type: "String"
