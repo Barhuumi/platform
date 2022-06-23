@@ -73,7 +73,7 @@ jobs:
             --s3-prefix ${{ inputs.STACK_NAME }} \
             --metadata \
                 commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
-            --region ${{ dsinputs.AWS_REGION }} \
+            --region ${{ inputs.AWS_REGION }} \
             --output-template-file packaged-dev.yaml
 
       - name: Upload artifact "packaged-dev.yaml"
