@@ -8,6 +8,9 @@ on:
       STACK_NAME:
         required: true
         type: string
+      SAM_TEMPLATE:
+        required: true
+        type: string
       CURRENT_WORKING_DIRECTORY:
         required: true
         type: string
@@ -50,7 +53,7 @@ jobs:
         run: cd ${{ inputs.CURRENT_WORKING_DIRECTORY }}
 
       - name: Build resources
-        run: sam build --template ${SAM_TEMPLATE} --use-container
+        run: sam build --template ${{ SAM_TEMPLATE }} --use-container
 
       ## Package and build the dev stack
       - name: Assume the dev pipeline user role
