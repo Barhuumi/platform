@@ -50,12 +50,12 @@ jobs:
       - uses: aws-actions/setup-sam@v2
 
       - name: CD to working directory "${{ inputs.CURRENT_WORKING_DIRECTORY }}"
-        run: | 
-          pwd
-          cd ${{ inputs.CURRENT_WORKING_DIRECTORY }}
+        working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
+        run: |
           pwd
 
       - name: Build resources
+        working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
         run: |
           pwd
           sam build --template ${{ inputs.SAM_TEMPLATE }} --use-container
