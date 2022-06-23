@@ -73,7 +73,7 @@ jobs:
             --s3-prefix ${{ inputs.STACK_NAME }} \
             --metadata \
                 commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
-            --region ${{ inputs.AWS_REGION }} \
+            --region ${{ dsinputs.AWS_REGION }} \
             --output-template-file packaged-dev.yaml
 
       - name: Upload artifact "packaged-dev.yaml"
@@ -122,7 +122,7 @@ jobs:
         working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
         run: |
           sam package \
-            --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_DEV }} \
+            --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_UAT }} \
             --s3-prefix ${{ inputs.STACK_NAME }} \
             --metadata \
                 commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
@@ -174,7 +174,7 @@ jobs:
       - name: SAM package and upload to the prod artifact bucket
         run: |
           sam package \
-            --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_DEV }} \
+            --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_PROD }} \
             --s3-prefix ${{ inputs.STACK_NAME }} \
             --metadata \
                 commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
