@@ -172,6 +172,7 @@ jobs:
           role-skip-session-tagging: true
 
       - name: SAM package and upload to the prod artifact bucket
+        working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
         run: |
           sam package \
             --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_PROD }} \
