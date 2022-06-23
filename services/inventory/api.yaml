@@ -147,8 +147,6 @@ Resources:
               Value: !Ref AWS::Region
             - Name: PLATFORM_SERVICES_EVENT_BUS_ARN
               Value: !Ref pEventBusArn
-            - Name: HECTARE
-              Value: '{{resolve:ssm-secure:/platform/hectare-config-value}}'
           LogConfiguration:
             LogDriver: awslogs
             Options:
