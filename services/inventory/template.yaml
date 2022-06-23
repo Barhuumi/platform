@@ -21,6 +21,9 @@ Parameters:
     Default: inventory-service
   pImageTag:
     Type: String
+  pForceDeployment:
+    Default: force.1
+    Type: String
 
 Resources:
   ApiStack:

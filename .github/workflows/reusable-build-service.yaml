@@ -1,0 +1,211 @@
+name: Reusable "deploy" workflow that deploys our standard services (Ecs APIs backed by Lambda event handlers)
+on:
+  workflow_call:
+    inputs:
+      AWS_REGION:
+        required: true
+        type: string
+      STACK_NAME:
+        required: true
+        type: string
+      CURRENT_WORKING_DIRECTORY:
+        required: true
+        type: string
+      ECR_REPOSITORY_NAME:
+        required: true
+        type: string
+    secrets:
+      PIPELINE_USER_AWS_ACCESS_KEY_ID:
+        required: true
+      PIPELINE_USER_AWS_SECRET_ACCESS_KEY:
+        required: true
+      PIPELINE_EXECUTION_ROLE_DEV:
+        required: true
+      PIPELINE_EXECUTION_ROLE_UAT:
+        required: true
+      PIPELINE_EXECUTION_ROLE_PROD:
+        required: true
+      CLOUDFORMATION_EXECUTION_ROLE_DEV:
+        required: true
+      CLOUDFORMATION_EXECUTION_ROLE_UAT:
+        required: true
+      CLOUDFORMATION_EXECUTION_ROLE_PROD:
+        required: true
+      ARTIFACTS_BUCKET_DEV:
+        required: true
+      ARTIFACTS_BUCKET_UAT:
+        required: true
+      ARTIFACTS_BUCKET_PROD:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v2
+      - uses: aws-actions/setup-sam@v2
+
+      - name: CD to working directory "${{ inputs.CURRENT_WORKING_DIRECTORY }}"
+        run: cd ${{ inputs.CURRENT_WORKING_DIRECTORY }}
+
+      - name: Build resources
+        run: sam build --template ${SAM_TEMPLATE} --use-container
+
+      ## Package and build the dev stack
+      - name: Assume the dev pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.AWS_REGION }}
+          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE_DEV }}
+          role-session-name: dev-packaging
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
+      - name: SAM package and upload to the dev artifact bucket
+        run: |
+          sam package \
+            --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_DEV }} \
+            --s3-prefix ${{ inputs.STACK_NAME }} \
+            --metadata \
+                commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --region ${{ inputs.AWS_REGION }} \
+            --output-template-file packaged-dev.yaml
+
+      - name: Upload artifact "packaged-dev.yaml"
+        uses: actions/upload-artifact@v3
+        with:
+          name: packaged-dev.yaml
+          path: ${{ inputs.CURRENT_WORKING_DIRECTORY }}/packaged-dev.yaml
+          retention-days: 3
+
+      - name: Login to Amazon ECR
+        id: dev-login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        id: dev-build-docker-image
+        env:
+          ECR_REGISTRY: ${{ steps.dev-login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ inputs.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > docker-dev-image-tag.txt
+
+      - name: Upload artifact "docker-dev-image-tag.txt"
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-dev-image-tag.txt
+          path: ${{ inputs.CURRENT_WORKING_DIRECTORY }}/docker-dev-image-tag.txt
+          retention-days: 3
+
+      ## Package and build the uat stack
+      - name: Assume the uat pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.AWS_REGION }}
+          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE_UAT }}
+          role-session-name: uat-packaging
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
+      - name: SAM package and upload to the uat artifact bucket
+        run: |
+          sam package \
+            --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_DEV }} \
+            --s3-prefix ${{ inputs.STACK_NAME }} \
+            --metadata \
+                commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --region ${{ inputs.AWS_REGION }} \
+            --output-template-file packaged-uat.yaml
+
+      - name: Upload artifact "packaged-uat.yaml"
+        uses: actions/upload-artifact@v3
+        with:
+          name: packaged-uat.yaml
+          path: ${{ inputs.CURRENT_WORKING_DIRECTORY }}/packaged-uat.yaml
+          retention-days: 3
+
+      - name: Login to Amazon ECR
+        id: uat-login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        id: uat-build-docker-image
+        env:
+          ECR_REGISTRY: ${{ steps.uat-login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ inputs.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > docker-uat-image-tag.txt
+
+      - name: Upload artifact "docker-uat-image-tag.txt"
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-uat-image-tag.txt
+          path: ${{ inputs.CURRENT_WORKING_DIRECTORY }}/docker-uat-image-tag.txt
+          retention-days: 3
+
+      ## Package and build the prod stack
+      - name: Assume the prod pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.AWS_REGION }}
+          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE_PROD }}
+          role-session-name: prod-packaging
+          role-duration-seconds: 900
+          role-skip-session-tagging: true
+
+      - name: SAM package and upload to the prod artifact bucket
+        run: |
+          sam package \
+            --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_DEV }} \
+            --s3-prefix ${{ inputs.STACK_NAME }} \
+            --metadata \
+                commit=${{ github.sha }},workflow=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --region ${{ inputs.AWS_REGION }} \
+            --output-template-file packaged-prod.yaml
+
+      - name: Upload artifact "packaged-prod.yaml"
+        uses: actions/upload-artifact@v3
+        with:
+          name: packaged-prod.yaml
+          path: ${{ inputs.CURRENT_WORKING_DIRECTORY }}/packaged-prod.yaml
+          retention-days: 3
+
+      - name: Display structure of downloaded files
+        run: |
+          pwd
+          ls -R
+
+      - name: Login to Amazon ECR
+        id: prod-login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        id: prod-build-docker-image
+        env:
+          ECR_REGISTRY: ${{ steps.prod-login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ inputs.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > docker-prod-image-tag.txt
+
+      - name: Upload artifact "docker-prod-image-tag.txt"
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-prod-image-tag.txt
+          path: ${{ inputs.CURRENT_WORKING_DIRECTORY }}/docker-prod-image-tag.txt
+          retention-days: 3
