@@ -49,16 +49,9 @@ jobs:
       - uses: actions/setup-python@v2
       - uses: aws-actions/setup-sam@v2
 
-      - name: CD to working directory "${{ inputs.CURRENT_WORKING_DIRECTORY }}"
-        working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
-        run: |
-          pwd
-
       - name: Build resources
         working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
-        run: |
-          pwd
-          sam build --template ${{ inputs.SAM_TEMPLATE }} --use-container
+        run: sam build --template ${{ inputs.SAM_TEMPLATE }} --use-container
 
       ## Package and build the dev stack
       - name: Assume the dev pipeline user role
@@ -73,8 +66,8 @@ jobs:
           role-skip-session-tagging: true
 
       - name: SAM package and upload to the dev artifact bucket
-        run: |
-          sam package \
+        working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
+        run: sam package \
             --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_DEV }} \
             --s3-prefix ${{ inputs.STACK_NAME }} \
             --metadata \
@@ -95,6 +88,7 @@ jobs:
 
       - name: Build, tag, and push docker image to Amazon ECR
         id: dev-build-docker-image
+        working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
         env:
           ECR_REGISTRY: ${{ steps.dev-login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ inputs.ECR_REPOSITORY_NAME }}
@@ -124,8 +118,8 @@ jobs:
           role-skip-session-tagging: true
 
       - name: SAM package and upload to the uat artifact bucket
-        run: |
-          sam package \
+        working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
+        run: sam package \
             --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_DEV }} \
             --s3-prefix ${{ inputs.STACK_NAME }} \
             --metadata \
@@ -146,6 +140,7 @@ jobs:
 
       - name: Build, tag, and push docker image to Amazon ECR
         id: uat-build-docker-image
+        working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
         env:
           ECR_REGISTRY: ${{ steps.uat-login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ inputs.ECR_REPOSITORY_NAME }}
@@ -175,8 +170,7 @@ jobs:
           role-skip-session-tagging: true
 
       - name: SAM package and upload to the prod artifact bucket
-        run: |
-          sam package \
+        run: sam package \
             --s3-bucket ${{ secrets.ARTIFACTS_BUCKET_DEV }} \
             --s3-prefix ${{ inputs.STACK_NAME }} \
             --metadata \
@@ -191,17 +185,13 @@ jobs:
           path: ${{ inputs.CURRENT_WORKING_DIRECTORY }}/packaged-prod.yaml
           retention-days: 3
 
-      - name: Display structure of downloaded files
-        run: |
-          pwd
-          ls -R
-
       - name: Login to Amazon ECR
         id: prod-login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build, tag, and push docker image to Amazon ECR
         id: prod-build-docker-image
+        working-directory: ${{ inputs.CURRENT_WORKING_DIRECTORY }}
         env:
           ECR_REGISTRY: ${{ steps.prod-login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ inputs.ECR_REPOSITORY_NAME }}
