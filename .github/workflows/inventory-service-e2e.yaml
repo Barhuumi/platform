@@ -42,7 +42,6 @@ jobs:
       STACK_NAME: inventory-service
       CURRENT_WORKING_DIRECTORY: services/inventory
       ECR_REPOSITORY_NAME: inventory-service-repository
-      SAM_TEMPLATE: template.yaml
     secrets:
       PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
       PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
