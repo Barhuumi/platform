@@ -50,10 +50,15 @@ jobs:
       - uses: aws-actions/setup-sam@v2
 
       - name: CD to working directory "${{ inputs.CURRENT_WORKING_DIRECTORY }}"
-        run: cd ${{ inputs.CURRENT_WORKING_DIRECTORY }}
+        run: | 
+          pwd
+          cd ${{ inputs.CURRENT_WORKING_DIRECTORY }}
+          pwd
 
       - name: Build resources
-        run: sam build --template ${{ inputs.SAM_TEMPLATE }} --use-container
+        run: |
+          pwd
+          sam build --template ${{ inputs.SAM_TEMPLATE }} --use-container
 
       ## Package and build the dev stack
       - name: Assume the dev pipeline user role
