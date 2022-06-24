@@ -137,7 +137,6 @@ Resources:
           Type: forward
       Conditions:
         - Field: path-pattern
-          Type: forward
           Values: ['/inventory']
       ListenerArn: !Ref pLoadBalancerListenerArn
       Priority: 1
