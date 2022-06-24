@@ -80,7 +80,7 @@ Resources:
         - Type: fixed-response
           FixedResponseConfig:
               StatusCode: 401
-      LoadBalancerArn: !Ref pLoadBalancerArn
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
       Port: 80
       Protocol: HTTP
 
@@ -102,6 +102,11 @@ Outputs:
     Value: !Ref ApplicationLoadBalancer
     Export:
       Name: !Sub ${AWS::StackName}-application-load-balancer-arn
+  oApplicationLoadBalancerListenerArn:
+    Description: Application Load Balancer Listener ARN
+    Value: !Ref ApplicationLoadBalancerListener
+    Export:
+      Name: !Sub ${AWS::StackName}-application-load-balancer-listener-arn
   oMicroservicesEcsClusterName:
     Description: Microservices ECS cluster name
     Value: !Ref MicroservicesECSCluster
