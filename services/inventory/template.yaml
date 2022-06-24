@@ -40,7 +40,7 @@ Resources:
         pEventBusName: !ImportValue platform-infrastructure-services-event-bus-name
         pEventBusArn: !ImportValue platform-infrastructure-services-event-bus-arn
         pEcsClusterName: !ImportValue platform-infrastructure-microservices-ecs-cluster-name
-        pLoadBalancerArn: !ImportValue platform-infrastructure-application-load-balancer-arn
+        pLoadBalancerListenerArn: !ImportValue platform-infrastructure-application-load-balancer-listener-arn
 
   ApiMonitoringStack:
     Type: AWS::Serverless::Application
