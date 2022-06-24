@@ -51,10 +51,3 @@ Resources:
         pEnvironment: !Ref pEnvironment
         pEcsClusterName: !ImportValue platform-infrastructure-microservices-ecs-cluster-name
         pEcsServiceName: !GetAtt ApiStack.Outputs.oEcsServiceName
-
-  LambdaStack:
-    Type: AWS::Serverless::Application
-    Properties:
-      Location: ./lambda.yaml
-      Parameters:
-        pEventBusName: !ImportValue platform-infrastructure-services-event-bus-name
