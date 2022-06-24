@@ -72,6 +72,18 @@ Resources:
       SecurityGroups:
         - !GetAtt ApplicationLoadBalancerSG.GroupId
 
+  ApplicationLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: ApplicationLoadBalancerTargetGroup
+    Properties:
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+              StatusCode: 401
+      LoadBalancerArn: !Ref pLoadBalancerArn
+      Port: 80
+      Protocol: HTTP
+
   # Event bus for services
   PlatformServicesEventBus:
     Type: AWS::Events::EventBus
