@@ -1,0 +1,111 @@
+name: customers-service
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - services/customers/**
+      - .github/workflows/customers-service.yaml
+
+defaults:
+  run:
+    working-directory: services/customers
+
+env:
+  STACK_NAME: customers-service
+  ECR_REPOSITORY_NAME: customers-service-repository
+  AWS_REGION: eu-west-2
+  SAM_TEMPLATE: template.yaml
+  ## deployment pipeline user
+  PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+  PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+  ## deployment pipeline execution role
+  PIPELINE_EXECUTION_ROLE_DEV: ${{ secrets.PIPELINE_EXECUTION_ROLE_DEV }}
+  PIPELINE_EXECUTION_ROLE_UAT: ${{ secrets.PIPELINE_EXECUTION_ROLE_UAT }}
+  PIPELINE_EXECUTION_ROLE_PROD: ${{ secrets.PIPELINE_EXECUTION_ROLE_PROD }}
+  ## cloudformation execution role
+  CLOUDFORMATION_EXECUTION_ROLE_DEV: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_DEV }}
+  CLOUDFORMATION_EXECUTION_ROLE_UAT: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_UAT }}
+  CLOUDFORMATION_EXECUTION_ROLE_PROD: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_PROD }}
+  ## artifacts bucket
+  ARTIFACTS_BUCKET_DEV: ${{ secrets.ARTIFACTS_BUCKET_DEV }}
+  ARTIFACTS_BUCKET_UAT: ${{ secrets.ARTIFACTS_BUCKET_UAT }}
+  ARTIFACTS_BUCKET_PROD: ${{ secrets.ARTIFACTS_BUCKET_PROD }}
+
+jobs:
+  build-and-package:
+    uses: ./.github/workflows/reusable-build-service.yaml
+    with:
+      AWS_REGION: eu-west-2
+      STACK_NAME: customers-service
+      CURRENT_WORKING_DIRECTORY: services/customers
+      ECR_REPOSITORY_NAME: customers-service-repository
+      SAM_TEMPLATE: template.yaml
+    secrets:
+      PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+      PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+      PIPELINE_EXECUTION_ROLE_DEV: ${{ secrets.PIPELINE_EXECUTION_ROLE_DEV }}
+      PIPELINE_EXECUTION_ROLE_UAT: ${{ secrets.PIPELINE_EXECUTION_ROLE_UAT }}
+      PIPELINE_EXECUTION_ROLE_PROD: ${{ secrets.PIPELINE_EXECUTION_ROLE_PROD }}
+      CLOUDFORMATION_EXECUTION_ROLE_DEV: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_DEV }}
+      CLOUDFORMATION_EXECUTION_ROLE_UAT: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_UAT }}
+      CLOUDFORMATION_EXECUTION_ROLE_PROD: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_PROD }}
+      ARTIFACTS_BUCKET_DEV: ${{ secrets.ARTIFACTS_BUCKET_DEV }}
+      ARTIFACTS_BUCKET_UAT: ${{ secrets.ARTIFACTS_BUCKET_UAT }}
+      ARTIFACTS_BUCKET_PROD: ${{ secrets.ARTIFACTS_BUCKET_PROD }}
+
+  deploy-dev:
+    needs: [build-and-package]
+    uses: ./.github/workflows/reusable-deploy-service.yaml
+    with:
+      AWS_REGION: eu-west-2
+      STACK_NAME: customers-service
+      ENVIRONMENT: dev
+      CURRENT_WORKING_DIRECTORY: services/customers
+      DOCKER_IMAGE_TAG_FILENAME: docker-dev-image-tag.txt
+      SAM_PACKAGED_TEMPLATE_FILENAME: packaged-dev.yaml
+      ROLE_SESSION_NAME: dev-deployment
+    secrets:
+      PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+      PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+      PIPELINE_EXECUTION_ROLE: ${{ secrets.PIPELINE_EXECUTION_ROLE_DEV }}
+      ARTIFACTS_BUCKET: ${{ secrets.ARTIFACTS_BUCKET_DEV }}
+      CLOUDFORMATION_EXECUTION_ROLE: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_DEV }}
+
+  deploy-uat:
+    needs: [deploy-dev]
+    uses: ./.github/workflows/reusable-deploy-service.yaml
+    with:
+      AWS_REGION: eu-west-2
+      STACK_NAME: customers-service
+      ENVIRONMENT: uat
+      CURRENT_WORKING_DIRECTORY: services/customers
+      DOCKER_IMAGE_TAG_FILENAME: docker-uat-image-tag.txt
+      SAM_PACKAGED_TEMPLATE_FILENAME: packaged-uat.yaml
+      ROLE_SESSION_NAME: uat-deployment
+    secrets:
+      PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+      PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+      PIPELINE_EXECUTION_ROLE: ${{ secrets.PIPELINE_EXECUTION_ROLE_UAT }}
+      ARTIFACTS_BUCKET: ${{ secrets.ARTIFACTS_BUCKET_UAT }}
+      CLOUDFORMATION_EXECUTION_ROLE: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_UAT }}
+
+  deploy-prod:
+    needs: [deploy-uat]
+    uses: ./.github/workflows/reusable-deploy-service.yaml
+    with:
+      AWS_REGION: eu-west-2
+      STACK_NAME: customers-service
+      ENVIRONMENT: prod
+      CURRENT_WORKING_DIRECTORY: services/customers
+      DOCKER_IMAGE_TAG_FILENAME: docker-prod-image-tag.txt
+      SAM_PACKAGED_TEMPLATE_FILENAME: packaged-prod.yaml
+      ROLE_SESSION_NAME: prod-deployment
+    secrets:
+      PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+      PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+      PIPELINE_EXECUTION_ROLE: ${{ secrets.PIPELINE_EXECUTION_ROLE_PROD }}
+      ARTIFACTS_BUCKET: ${{ secrets.ARTIFACTS_BUCKET_PROD }}
+      CLOUDFORMATION_EXECUTION_ROLE: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_PROD }}
