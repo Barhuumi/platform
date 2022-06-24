@@ -154,3 +154,8 @@ Outputs:
     Value: !GetAtt EcrRepositoriesStack.Outputs.oInventoryServiceRepositoryUri
     Export:
       Name: !Sub ${AWS::StackName}-inventory-service-repository-uri
+  oCustomersServiceRepositoryUri:
+    Description: Customers Service Repository Uri
+    Value: !GetAtt EcrRepositoriesStack.Outputs.oCustomersServiceRepositoryUri
+    Export:
+      Name: !Sub ${AWS::StackName}-customers-service-repository-uri

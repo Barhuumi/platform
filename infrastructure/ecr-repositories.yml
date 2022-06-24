@@ -8,8 +8,16 @@ Resources:
     Properties:
       RepositoryName: inventory-service-repository
       ImageTagMutability: IMMUTABLE
+  CustomersServiceRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: customers-service-repository
+      ImageTagMutability: IMMUTABLE
 
 Outputs:
   oInventoryServiceRepositoryUri:
     Description: Inventory Service Repository Uri
     Value: !GetAtt InventoryServiceRepository.RepositoryUri
+  oCustomersServiceRepositoryUri:
+    Description: Customers Service Repository Uri
+    Value: !GetAtt CustomersServiceRepository.RepositoryUri
