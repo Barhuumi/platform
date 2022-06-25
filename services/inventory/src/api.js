@@ -4,13 +4,13 @@ import { createAsset } from './lib/assets/create-asset.js'
 
 const app = express()
 
-app.get('/', (req, res) => {
+app.get('/inventory', (req, res) => {
     res.send('Proof of concept API')
 })
 
-app.post('/asset', createAsset)
+app.post('/inventory/asset', createAsset)
 
-app.get('/health/status', (req, res) => {
+app.get('/inventory/health/status', (req, res) => {
     res.send(200)
 })
 
