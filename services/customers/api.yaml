@@ -30,8 +30,8 @@ Parameters:
   pEcsClusterName:
     Description: The ECS cluster name
     Type: String
-  pLoadBalancerArn:
-    Description: The ARN of the load balancer
+  pLoadBalancerListenerArn:
+    Description: The ARN of the load balancer listener
     Type: String
 
 Resources:
@@ -99,22 +99,24 @@ Resources:
       HealthCheckTimeoutSeconds: 3
       HealthCheckIntervalSeconds: 5
       HealthyThresholdCount: 2
-      HealthCheckPath: /health/status
+      HealthCheckPath: /customers/health/status
       TargetType: ip
       TargetGroupAttributes:
         - Key: deregistration_delay.timeout_seconds
           Value: 5
 
-  ApplicationLoadBalancerListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
+  ApplicationLoadBalancerListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
     DependsOn: ApplicationLoadBalancerTargetGroup
     Properties:
-      DefaultActions:
+      Actions:
         - TargetGroupArn: !Ref ApplicationLoadBalancerTargetGroup
           Type: forward
-      LoadBalancerArn: !Ref pLoadBalancerArn
-      Port: 80
-      Protocol: HTTP
+      Conditions:
+        - Field: path-pattern
+          Values: ['/customers/*']
+      ListenerArn: !Ref pLoadBalancerListenerArn
+      Priority: 2
 
   CustomersServiceLogGroup:
     Type: AWS::Logs::LogGroup
@@ -159,7 +161,7 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn:
       - CustomersEcsServicesSg
-      - ApplicationLoadBalancerListener
+      - ApplicationLoadBalancerListenerRule
     Properties:
       LaunchType: FARGATE
       ServiceName: !Ref pServiceName

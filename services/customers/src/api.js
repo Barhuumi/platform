@@ -2,11 +2,11 @@ import express from 'express';
 
 const app = express()
 
-app.get('/', (req, res) => {
-    res.send('Proof of concept API')
+app.get('/customers', (req, res) => {
+    res.send('Proof of concept "customers" API')
 })
 
-app.get('/health/status', (req, res) => {
+app.get('/customers/health/status', (req, res) => {
     res.send(200)
 })
 
