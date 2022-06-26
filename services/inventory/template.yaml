@@ -39,6 +39,7 @@ Resources:
         pPrivateSubnetC: !ImportValue platform-infrastructure-vpc-private-subnet-c-id
         pEventBusName: !ImportValue platform-infrastructure-services-event-bus-name
         pEventBusArn: !ImportValue platform-infrastructure-services-event-bus-arn
+        pEcsSecurityGroupId: !ImportValue platform-infrastructure-ecs-services-sg-id
         pEcsClusterName: !ImportValue platform-infrastructure-microservices-ecs-cluster-name
         pLoadBalancerListenerArn: !ImportValue platform-infrastructure-application-load-balancer-listener-arn
 

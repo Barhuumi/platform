@@ -30,6 +30,9 @@ Parameters:
   pEcsClusterName:
     Description: The ECS cluster name
     Type: String
+  pEcsSecurityGroupId:
+    Description: The security group ID to allow inbound access to a container
+    Type: AWS::EC2::SecurityGroup::Id
   pLoadBalancerListenerArn:
     Description: The ARN of the load balancer listener
     Type: String
@@ -105,29 +108,6 @@ Resources:
         - Key: deregistration_delay.timeout_seconds
           Value: 5
 
-  # ApplicationLoadBalancerListener:
-  #   Type: AWS::ElasticLoadBalancingV2::Listener
-  #   DependsOn: ApplicationLoadBalancerTargetGroup
-  #   Properties:
-  #     DefaultActions:
-  #       - TargetGroupArn: !Ref ApplicationLoadBalancerTargetGroup
-  #         Type: forward
-  #     LoadBalancerArn: !Ref pLoadBalancerListenerArn
-  #     Port: 80
-  #     Protocol: HTTP
-
-  # ApplicationLoadBalancerListener:
-  #   Type: AWS::ElasticLoadBalancingV2::Listener
-  #   DependsOn: ApplicationLoadBalancerTargetGroup
-  #   Properties:
-  #     DefaultActions:
-  #       - Type: fixed-response
-  #         FixedResponseConfig:
-  #             StatusCode: 401
-  #     LoadBalancerArn: !Ref pLoadBalancerListenerArn
-  #     Port: 80
-  #     Protocol: HTTP
-
   ApplicationLoadBalancerListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     DependsOn: ApplicationLoadBalancerTargetGroup
@@ -182,8 +162,6 @@ Resources:
   # ECS Service
   InventoryECSService:
     Type: AWS::ECS::Service
-    DependsOn:
-      - InventoryEcsServicesSg
     Properties:
       LaunchType: FARGATE
       ServiceName: !Ref pServiceName
@@ -200,7 +178,7 @@ Resources:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           SecurityGroups: 
-            - !GetAtt InventoryEcsServicesSg.GroupId
+            - !Ref pEcsSecurityGroupId
           Subnets:
             - !Ref pPrivateSubnetA
             - !Ref pPrivateSubnetB
