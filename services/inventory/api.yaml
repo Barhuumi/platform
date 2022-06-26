@@ -80,7 +80,7 @@ Resources:
     Properties:
       Name: alb-target-group
       VpcId: !Ref pVpcId
-      Protocol: HTTPS
+      Protocol: HTTP
       Port: 3001
       HealthCheckTimeoutSeconds: 3
       HealthCheckIntervalSeconds: 5
