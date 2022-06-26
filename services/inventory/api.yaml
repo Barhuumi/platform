@@ -36,6 +36,10 @@ Parameters:
   pLoadBalancerListenerArn:
     Description: The ARN of the load balancer listener
     Type: String
+  PortNumber:
+    Description: The port number we are running the container on
+    Type: Number
+    Default: 8443
 
 Resources:
   InventoryServiceExecutionRole:
@@ -81,7 +85,7 @@ Resources:
       Name: alb-target-group
       VpcId: !Ref pVpcId
       Protocol: HTTP
-      Port: 3001
+      Port: !Ref PortNumber
       HealthCheckTimeoutSeconds: 3
       HealthCheckIntervalSeconds: 5
       HealthyThresholdCount: 2
@@ -125,7 +129,7 @@ Resources:
           MemoryReservation: 256
           Memory: 512
           PortMappings:
-            - ContainerPort: 3001 # port mapping
+            - ContainerPort: !Ref PortNumber
               Protocol: tcp
           Environment:
             - Name: EVENT_SOURCE
@@ -168,7 +172,7 @@ Resources:
             - !Ref pPrivateSubnetC
       LoadBalancers:
         - TargetGroupArn: !Ref ApplicationLoadBalancerTargetGroup
-          ContainerPort: 3001
+          ContainerPort: !Ref PortNumber
           ContainerName: !Sub ${pServiceName}-container
 
 Outputs:
