@@ -43,6 +43,23 @@ Resources:
     Properties:
       ClusterName: microservices-cluster
 
+  EcsServicesSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG that filters that traffic that is allowed to go to your containers.
+      GroupName: ecs-services-sg
+      SecurityGroupIngress:
+        - CidrIpv6: ::/0
+          FromPort: 3001
+          ToPort: 3001
+          IpProtocol: TCP
+          Description: Inbound rule for IPv6 traffic
+        - CidrIp: 0.0.0.0/0
+          FromPort: 3001
+          ToPort: 3001
+          IpProtocol: TCP
+          Description: Inbound rule for IPv4 traffic
+
   ApplicationLoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -72,7 +89,23 @@ Resources:
       SecurityGroups:
         - !GetAtt ApplicationLoadBalancerSG.GroupId
 
-  ApplicationLoadBalancerListener:
+  ApplicationLoadBalancerHttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: 443
+            Host: '#{host}'
+            Path: '/#{path}'
+            Query: '#{query}'
+            StatusCode: HTTP_301
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  ApplicationLoadBalancerHttpsListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
@@ -80,8 +113,10 @@ Resources:
           FixedResponseConfig:
               StatusCode: 401
       LoadBalancerArn: !Ref ApplicationLoadBalancer
-      Port: 80
-      Protocol: HTTP
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: arn:aws:acm:eu-west-2:311244688175:certificate/94e61648-58fc-4dcd-bb0a-9e5c100b8f47
 
   # Event bus for services
   PlatformServicesEventBus:
@@ -103,7 +138,7 @@ Outputs:
       Name: !Sub ${AWS::StackName}-application-load-balancer-arn
   oApplicationLoadBalancerListenerArn:
     Description: Application Load Balancer Listener ARN
-    Value: !Ref ApplicationLoadBalancerListener
+    Value: !Ref ApplicationLoadBalancerHttpsListener
     Export:
       Name: !Sub ${AWS::StackName}-application-load-balancer-listener-arn
   oMicroservicesEcsClusterName:
@@ -163,6 +198,11 @@ Outputs:
       - VpcId
     Export:
       Name: !Sub ${AWS::StackName}-vpc-id
+  oEcsServicesSgId:
+    Description: VPC id
+    Value: !GetAtt EcsServicesSg.GroupId
+    Export:
+      Name: !Sub ${AWS::StackName}-ecs-services-sg-id
   ## ECR Repositories
   oInventoryServiceRepositoryUri:
     Description: Inventory Service Repository Uri
