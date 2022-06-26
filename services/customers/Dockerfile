@@ -12,4 +12,4 @@ COPY . ./
 
 CMD node src/api.js
 
-EXPOSE 3002
+EXPOSE 3001
