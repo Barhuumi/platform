@@ -75,23 +75,6 @@ Resources:
                   - logs:PutLogEvents
                 Resource: !GetAtt InventoryServiceLogGroup.Arn
 
-  InventoryEcsServicesSg:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: SG that filters that traffic that is allowed to go to your containers.
-      GroupName: ecs-services-sg
-      SecurityGroupIngress:
-        - CidrIpv6: ::/0
-          FromPort: 3001
-          ToPort: 3001
-          IpProtocol: TCP
-          Description: Inbound rule for IPv6 traffic
-        - CidrIp: 0.0.0.0/0
-          FromPort: 3001
-          ToPort: 3001
-          IpProtocol: TCP
-          Description: Inbound rule for IPv4 traffic
-
   ApplicationLoadBalancerTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
