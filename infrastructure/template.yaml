@@ -76,6 +76,16 @@ Resources:
           ToPort: 80
           IpProtocol: TCP
           Description: Inbound rule for IPv4 traffic
+        - CidrIpv6: ::/0
+          FromPort: 443
+          ToPort: 443
+          IpProtocol: TCP
+          Description: Inbound rule for IPv6 traffic
+        - CidrIp: 0.0.0.0/0
+          FromPort: 443
+          ToPort: 443
+          IpProtocol: TCP
+          Description: Inbound rule for IPv4 traffic
 
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -199,7 +209,7 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-vpc-id
   oEcsServicesSgId:
-    Description: VPC id
+    Description: ECS securtity group id to allow inbound access to our containers
     Value: !GetAtt EcsServicesSg.GroupId
     Export:
       Name: !Sub ${AWS::StackName}-ecs-services-sg-id
