@@ -139,6 +139,8 @@ Resources:
               Value: !Ref AWS::Region
             - Name: PLATFORM_SERVICES_EVENT_BUS_ARN
               Value: !Ref pEventBusArn
+            - Name: HECTARE
+              Value: '{{resolve:secretsmanager:hctr/hectare-key:SecretString:HECTARE}}'
           LogConfiguration:
             LogDriver: awslogs
             Options:
