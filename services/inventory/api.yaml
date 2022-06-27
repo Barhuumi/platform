@@ -39,7 +39,7 @@ Parameters:
   PortNumber:
     Description: The port number we are running the container on
     Type: Number
-    Default: 8443
+    Default: 8080
 
 Resources:
   InventoryServiceExecutionRole:

@@ -14,6 +14,6 @@ app.get('/inventory/health/status', (req, res) => {
     res.send(200)
 })
 
-const PORT = 3001
+const PORT = 8080
 
 app.listen(PORT, () => console.log(`Server started on PORT ${PORT}`))
