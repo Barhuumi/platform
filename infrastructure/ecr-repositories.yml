@@ -7,7 +7,7 @@ Resources:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: inventory-service-repository
-      ImageTagMutability: IMMUTABLE
+      ImageTagMutability: MUTABLE
   CustomersServiceRepository:
     Type: AWS::ECR::Repository
     Properties:
