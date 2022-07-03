@@ -54,7 +54,7 @@ Mappings:
           ]
         }
     Prod:
-      ProdEcrLifecyclePolicyText: |
+      EcrLifecyclePolicyText: |
         {
           "rules": [
             {
