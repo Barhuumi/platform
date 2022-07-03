@@ -1,6 +1,90 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: Self contained stack hosting all our ECR repositories.
+
+Parameters:
+  pEnvironment:
+    Type: String
+
+Mappings:
+  EcrPolicy:
+    NonProdEcrLifecyclePolicyText: |
+      {
+        "rules": [
+          {
+            "rulePriority": 1,
+            "description": "Expire untagged images after a day",
+            "selection": {
+              "tagStatus": "untagged",
+              "countType": "sinceImagePushed",
+              "countUnit": "days",
+              "countNumber": 1
+            },
+            "action": {
+              "type": "expire"
+            }
+          },
+          {
+            "rulePriority": 2,
+            "description": "Expire temp stack images after 2 days",
+            "selection": {
+              "tagStatus": "tagged",
+              "tagPrefixList": [ "temp-" ],
+              "countType": "sinceImagePushed",
+              "countUnit": "days",
+              "countNumber": 2
+            },
+            "action": {
+              "type": "expire"
+            }
+          },
+          {
+            "rulePriority": 3,
+            "description": "Only keep last 3 tagged images that have been deployed by CI",
+            "selection": {
+              "tagStatus": "tagged",
+              "countType": "imageCountMoreThan",
+              "countNumber": 3
+            },
+            "action": {
+              "type": "expire"
+            }
+          }
+        ]
+      }
+    ProdEcrLifecyclePolicyText: |
+      {
+        "rules": [
+          {
+            "rulePriority": 1,
+            "description": "Expire untagged images after a day",
+            "selection": {
+              "tagStatus": "untagged",
+              "countType": "sinceImagePushed",
+              "countUnit": "days",
+              "countNumber": 1
+            },
+            "action": {
+              "type": "expire"
+            }
+          },
+          {
+            "rulePriority": 2,
+            "description": "Only keep last 30 tagged images that have been deployed by CI",
+            "selection": {
+              "tagStatus": "tagged",
+              "countType": "imageCountMoreThan",
+              "countNumber": 30
+            },
+            "action": {
+              "type": "expire"
+            }
+          }
+        ]
+      }
+
+Conditions:
+  cIsProd: !Equals [!Ref pEnvironment, 'prod']
 
 Resources:
   InventoryServiceRepository:
@@ -8,11 +92,25 @@ Resources:
     Properties:
       RepositoryName: inventory-service-repository
       ImageTagMutability: MUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText:
+          !If
+            - cIsProd
+            - !FindInMap [EcrPolicy, ProdEcrLifecyclePolicyText]
+            - !FindInMap [EcrPolicy, NonProdEcrLifecyclePolicyText]
+
   CustomersServiceRepository:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: customers-service-repository
       ImageTagMutability: IMMUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText:
+          !If
+            - cIsProd
+            - !FindInMap [EcrPolicy, ProdEcrLifecyclePolicyText]
+            - !FindInMap [EcrPolicy, NonProdEcrLifecyclePolicyText]
+        
 
 Outputs:
   oInventoryServiceRepositoryUri:

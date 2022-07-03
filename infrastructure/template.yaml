@@ -37,6 +37,8 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location: ./ecr-repositories.yml
+      Parameters:
+        pEnvironment: !Ref pEnvironment
 
   MicroservicesECSCluster:
     Type: AWS::ECS::Cluster
