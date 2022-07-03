@@ -8,80 +8,82 @@ Parameters:
 
 Mappings:
   EcrPolicy:
-    NonProdEcrLifecyclePolicyText: |
-      {
-        "rules": [
-          {
-            "rulePriority": 1,
-            "description": "Expire untagged images after a day",
-            "selection": {
-              "tagStatus": "untagged",
-              "countType": "sinceImagePushed",
-              "countUnit": "days",
-              "countNumber": 1
+    NonProd:
+      EcrLifecyclePolicyText: |
+        {
+          "rules": [
+            {
+              "rulePriority": 1,
+              "description": "Expire untagged images after a day",
+              "selection": {
+                "tagStatus": "untagged",
+                "countType": "sinceImagePushed",
+                "countUnit": "days",
+                "countNumber": 1
+              },
+              "action": {
+                "type": "expire"
+              }
             },
-            "action": {
-              "type": "expire"
-            }
-          },
-          {
-            "rulePriority": 2,
-            "description": "Expire temp stack images after 2 days",
-            "selection": {
-              "tagStatus": "tagged",
-              "tagPrefixList": [ "temp-" ],
-              "countType": "sinceImagePushed",
-              "countUnit": "days",
-              "countNumber": 2
+            {
+              "rulePriority": 2,
+              "description": "Expire temp stack images after 2 days",
+              "selection": {
+                "tagStatus": "tagged",
+                "tagPrefixList": [ "temp-" ],
+                "countType": "sinceImagePushed",
+                "countUnit": "days",
+                "countNumber": 2
+              },
+              "action": {
+                "type": "expire"
+              }
             },
-            "action": {
-              "type": "expire"
+            {
+              "rulePriority": 3,
+              "description": "Only keep last 3 tagged images that have been deployed by CI",
+              "selection": {
+                "tagStatus": "tagged",
+                "countType": "imageCountMoreThan",
+                "countNumber": 3
+              },
+              "action": {
+                "type": "expire"
+              }
             }
-          },
-          {
-            "rulePriority": 3,
-            "description": "Only keep last 3 tagged images that have been deployed by CI",
-            "selection": {
-              "tagStatus": "tagged",
-              "countType": "imageCountMoreThan",
-              "countNumber": 3
+          ]
+        }
+    Prod:
+      ProdEcrLifecyclePolicyText: |
+        {
+          "rules": [
+            {
+              "rulePriority": 1,
+              "description": "Expire untagged images after a day",
+              "selection": {
+                "tagStatus": "untagged",
+                "countType": "sinceImagePushed",
+                "countUnit": "days",
+                "countNumber": 1
+              },
+              "action": {
+                "type": "expire"
+              }
             },
-            "action": {
-              "type": "expire"
+            {
+              "rulePriority": 2,
+              "description": "Only keep last 30 tagged images that have been deployed by CI",
+              "selection": {
+                "tagStatus": "tagged",
+                "countType": "imageCountMoreThan",
+                "countNumber": 30
+              },
+              "action": {
+                "type": "expire"
+              }
             }
-          }
-        ]
-      }
-    ProdEcrLifecyclePolicyText: |
-      {
-        "rules": [
-          {
-            "rulePriority": 1,
-            "description": "Expire untagged images after a day",
-            "selection": {
-              "tagStatus": "untagged",
-              "countType": "sinceImagePushed",
-              "countUnit": "days",
-              "countNumber": 1
-            },
-            "action": {
-              "type": "expire"
-            }
-          },
-          {
-            "rulePriority": 2,
-            "description": "Only keep last 30 tagged images that have been deployed by CI",
-            "selection": {
-              "tagStatus": "tagged",
-              "countType": "imageCountMoreThan",
-              "countNumber": 30
-            },
-            "action": {
-              "type": "expire"
-            }
-          }
-        ]
-      }
+          ]
+        }
 
 Conditions:
   cIsProd: !Equals [!Ref pEnvironment, 'prod']
@@ -96,8 +98,8 @@ Resources:
         LifecyclePolicyText:
           !If
             - cIsProd
-            - !FindInMap [EcrPolicy, ProdEcrLifecyclePolicyText]
-            - !FindInMap [EcrPolicy, NonProdEcrLifecyclePolicyText]
+            - !FindInMap [EcrPolicy, Prod, EcrLifecyclePolicyText]
+            - !FindInMap [EcrPolicy, NonProd, EcrLifecyclePolicyText]
 
   CustomersServiceRepository:
     Type: AWS::ECR::Repository
@@ -108,9 +110,8 @@ Resources:
         LifecyclePolicyText:
           !If
             - cIsProd
-            - !FindInMap [EcrPolicy, ProdEcrLifecyclePolicyText]
-            - !FindInMap [EcrPolicy, NonProdEcrLifecyclePolicyText]
-        
+            - !FindInMap [EcrPolicy, Prod, EcrLifecyclePolicyText]
+            - !FindInMap [EcrPolicy, NonProd, EcrLifecyclePolicyText]
 
 Outputs:
   oInventoryServiceRepositoryUri:
