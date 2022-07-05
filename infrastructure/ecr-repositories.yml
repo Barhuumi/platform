@@ -44,6 +44,7 @@ Mappings:
               "description": "Only keep last 3 tagged images that have been deployed by CI",
               "selection": {
                 "tagStatus": "tagged",
+                "tagPrefixList": [ "ci-" ],
                 "countType": "imageCountMoreThan",
                 "countNumber": 3
               },
