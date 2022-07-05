@@ -22,7 +22,7 @@ Parameters:
   pImageTag:
     Type: String
   pForceDeployment:
-    Default: force.2
+    Default: force.3
     Type: String
 
 Resources:
