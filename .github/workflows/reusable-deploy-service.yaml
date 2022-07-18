@@ -35,6 +35,10 @@ on:
       CLOUDFORMATION_EXECUTION_ROLE:
         required: true
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   deploy:
     environment: ${{ inputs.ENVIRONMENT }}
