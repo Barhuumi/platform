@@ -57,7 +57,7 @@ jobs:
   #     ARTIFACTS_BUCKET_PROD: ${{ secrets.ARTIFACTS_BUCKET_PROD }}
 
   deploy-dev:
-    needs: [build-and-package]
+    # needs: [build-and-package]
     uses: ./.github/workflows/reusable-deploy-service.yaml
     permissions:
       issues: write
