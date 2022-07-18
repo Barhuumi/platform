@@ -35,15 +35,14 @@ on:
       CLOUDFORMATION_EXECUTION_ROLE:
         required: true
 
-permissions:
-  contents: read
-  issues: write
-
 jobs:
   deploy:
     environment: ${{ inputs.ENVIRONMENT }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.job }}-${{ inputs.ENVIRONMENT }}
+    permissions:
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: trstringer/manual-approval@v1
