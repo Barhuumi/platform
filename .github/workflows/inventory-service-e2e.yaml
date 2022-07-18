@@ -59,6 +59,8 @@ jobs:
   deploy-dev:
     needs: [build-and-package]
     uses: ./.github/workflows/reusable-deploy-service.yaml
+    permissions:
+      issues: write
     with:
       AWS_REGION: eu-west-2
       STACK_NAME: inventory-service

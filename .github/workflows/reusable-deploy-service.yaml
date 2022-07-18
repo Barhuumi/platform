@@ -40,9 +40,6 @@ jobs:
     environment: ${{ inputs.ENVIRONMENT }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.job }}-${{ inputs.ENVIRONMENT }}
-    permissions:
-      issues: write
-      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: trstringer/manual-approval@v1
