@@ -45,7 +45,7 @@ jobs:
       - uses: trstringer/manual-approval@v1
         with:
           secret: ${{ github.TOKEN }}
-          approvers: barhuumi
+          approvers: Barhuumi
           minimum-approvals: 1
           issue-title: "Approval required to deploy commit #${{ github.sha }} to production."
       - uses: actions/checkout@v3
