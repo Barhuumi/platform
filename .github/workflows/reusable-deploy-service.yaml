@@ -42,6 +42,12 @@ jobs:
       group: ${{ github.workflow }}-${{ github.job }}-${{ inputs.ENVIRONMENT }}
     runs-on: ubuntu-latest
     steps:
+      - uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: barhuumi
+          minimum-approvals: 1
+          issue-title: "Deploying ${{ github.sha }} to prod. Workflow (${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
       - uses: aws-actions/setup-sam@v2
