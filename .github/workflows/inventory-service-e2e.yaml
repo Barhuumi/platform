@@ -60,6 +60,7 @@ jobs:
     # needs: [build-and-package]
     uses: ./.github/workflows/reusable-deploy-service.yaml
     permissions:
+      pull-requests	: write
       issues: write
     with:
       AWS_REGION: eu-west-2

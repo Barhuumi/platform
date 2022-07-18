@@ -47,7 +47,7 @@ jobs:
           secret: ${{ github.TOKEN }}
           approvers: barhuumi
           minimum-approvals: 1
-          issue-title: "Deploying ${{ github.sha }} to prod. Workflow (${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          issue-title: "Approval required to deploy commit #${{ github.sha }} to production."
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
       - uses: aws-actions/setup-sam@v2
