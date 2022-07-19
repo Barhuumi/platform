@@ -35,29 +35,29 @@ env:
   ARTIFACTS_BUCKET_PROD: ${{ secrets.ARTIFACTS_BUCKET_PROD }}
 
 jobs:
-  # build-and-package:
-  #   uses: ./.github/workflows/reusable-build-service.yaml
-  #   with:
-  #     AWS_REGION: eu-west-2
-  #     STACK_NAME: inventory-service
-  #     CURRENT_WORKING_DIRECTORY: services/inventory
-  #     ECR_REPOSITORY_NAME: inventory-service-repository
-  #     SAM_TEMPLATE: template.yaml
-  #   secrets:
-  #     PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
-  #     PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
-  #     PIPELINE_EXECUTION_ROLE_DEV: ${{ secrets.PIPELINE_EXECUTION_ROLE_DEV }}
-  #     PIPELINE_EXECUTION_ROLE_UAT: ${{ secrets.PIPELINE_EXECUTION_ROLE_UAT }}
-  #     PIPELINE_EXECUTION_ROLE_PROD: ${{ secrets.PIPELINE_EXECUTION_ROLE_PROD }}
-  #     CLOUDFORMATION_EXECUTION_ROLE_DEV: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_DEV }}
-  #     CLOUDFORMATION_EXECUTION_ROLE_UAT: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_UAT }}
-  #     CLOUDFORMATION_EXECUTION_ROLE_PROD: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_PROD }}
-  #     ARTIFACTS_BUCKET_DEV: ${{ secrets.ARTIFACTS_BUCKET_DEV }}
-  #     ARTIFACTS_BUCKET_UAT: ${{ secrets.ARTIFACTS_BUCKET_UAT }}
-  #     ARTIFACTS_BUCKET_PROD: ${{ secrets.ARTIFACTS_BUCKET_PROD }}
+  build-and-package:
+    uses: ./.github/workflows/reusable-build-service.yaml
+    with:
+      AWS_REGION: eu-west-2
+      STACK_NAME: inventory-service
+      CURRENT_WORKING_DIRECTORY: services/inventory
+      ECR_REPOSITORY_NAME: inventory-service-repository
+      SAM_TEMPLATE: template.yaml
+    secrets:
+      PIPELINE_USER_AWS_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_AWS_ACCESS_KEY_ID }}
+      PIPELINE_USER_AWS_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_AWS_SECRET_ACCESS_KEY }}
+      PIPELINE_EXECUTION_ROLE_DEV: ${{ secrets.PIPELINE_EXECUTION_ROLE_DEV }}
+      PIPELINE_EXECUTION_ROLE_UAT: ${{ secrets.PIPELINE_EXECUTION_ROLE_UAT }}
+      PIPELINE_EXECUTION_ROLE_PROD: ${{ secrets.PIPELINE_EXECUTION_ROLE_PROD }}
+      CLOUDFORMATION_EXECUTION_ROLE_DEV: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_DEV }}
+      CLOUDFORMATION_EXECUTION_ROLE_UAT: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_UAT }}
+      CLOUDFORMATION_EXECUTION_ROLE_PROD: ${{ secrets.CLOUDFORMATION_EXECUTION_ROLE_PROD }}
+      ARTIFACTS_BUCKET_DEV: ${{ secrets.ARTIFACTS_BUCKET_DEV }}
+      ARTIFACTS_BUCKET_UAT: ${{ secrets.ARTIFACTS_BUCKET_UAT }}
+      ARTIFACTS_BUCKET_PROD: ${{ secrets.ARTIFACTS_BUCKET_PROD }}
 
   deploy-dev:
-    # needs: [build-and-package]
+    needs: [build-and-package]
     uses: ./.github/workflows/reusable-deploy-service.yaml
     permissions:
       pull-requests	: write
