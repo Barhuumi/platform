@@ -56,8 +56,23 @@ jobs:
       ARTIFACTS_BUCKET_UAT: ${{ secrets.ARTIFACTS_BUCKET_UAT }}
       ARTIFACTS_BUCKET_PROD: ${{ secrets.ARTIFACTS_BUCKET_PROD }}
 
-  deploy-dev:
+  approval-deploy-dev:
     needs: [build-and-package]
+    environment: dev
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests	: write
+      issues: write
+    steps:
+      - uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: Barhuumi
+          minimum-approvals: 1
+          issue-title: "Approval required to deploy commit #${{ github.sha }} to production."
+
+  deploy-dev:
+    needs: [approval-deploy-dev]
     uses: ./.github/workflows/reusable-deploy-service.yaml
     permissions:
       pull-requests	: write
